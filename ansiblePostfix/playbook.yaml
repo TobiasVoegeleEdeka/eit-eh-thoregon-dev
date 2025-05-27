@@ -1,0 +1,121 @@
+---
+- name: Configure Postfix Mail Server
+  hosts: all # Ändere dies zu deiner Zielgruppe, z.B. mailservers
+  become: yes
+  vars_files:
+    - vars/mail_vars.yml # Lädt die Variablen
+
+  tasks:
+    - name: Update apt cache and upgrade packages
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist # oder 'yes' für ein normales Upgrade
+
+    - name: Install Postfix and mailutils
+      ansible.builtin.apt:
+        name:
+          - postfix
+          - mailutils
+        state: present
+
+    - name: Set debconf selections for Postfix
+      ansible.builtin.debconf:
+        name: postfix
+        question: "{{ item.question }}"
+        value: "{{ item.value }}"
+        vtype: "{{ item.vtype }}"
+      loop:
+        - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'string' }
+        - { question: 'postfix/mailname', value: "{{ public_fqdn }}", vtype: 'string' }
+      notify: Restart Postfix # Eine frühe Konfigurationsänderung könnte einen Neustart erfordern
+
+    - name: Configure /etc/mailname
+      ansible.builtin.template:
+        src: templates/mailname.j2
+        dest: /etc/mailname
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Postfix
+
+    - name: Configure /etc/postfix/main.cf
+      ansible.builtin.template:
+        src: templates/main.cf.j2
+        dest: /etc/postfix/main.cf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Postfix
+      # Optional: Validierung vor dem Neustart
+      # register: main_cf_status
+      # changed_when: main_cf_status.changed
+      # notify:
+      #   - Validate Postfix Config
+      #   - Restart Postfix
+
+    - name: Create/Update /etc/postfix/sender_canonical
+      ansible.builtin.template:
+        src: templates/sender_canonical.j2
+        dest: /etc/postfix/sender_canonical
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Update Postfix sender_canonical map
+
+    - name: Generate sender_canonical_maps database
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/sender_canonical
+      # Diese Aufgabe wird nur ausgeführt, wenn der Handler "Update Postfix sender_canonical map" getriggert wird
+      # oder wenn wir es explizit wollen. Besser ist es, dies über den Handler zu steuern.
+      # Für direkte Ausführung hier:
+      # when: sender_canonical_file.changed # Wenn sender_canonical_file mit register registriert wurde
+      # Alternativ als Teil des Handlers. Für dieses Beispiel lassen wir es als expliziten Schritt
+      # der vom Handler "Update Postfix sender_canonical map" aufgerufen wird.
+      # (siehe Handler unten)
+      listen: Update Postfix sender_canonical map # Dieser Task kann durch den Notify getriggert werden.
+
+    - name: Update alias database
+      ansible.builtin.command:
+        cmd: newaliases
+      changed_when: false # newaliases gibt nicht immer einen klaren Indikator für Änderungen,
+                         # aber wir wollen den Handler trotzdem benachrichtigen, wenn Konfig-Dateien es tun.
+                         # Wenn /etc/aliases verwaltet wird, würde dessen Änderung den Handler triggern.
+                         # Hier gehen wir davon aus, dass es präventiv laufen soll, wenn Postfix neu gestartet wird.
+      notify: Restart Postfix # Sicherstellen, dass Aliase nach Änderungen geladen werden.
+
+    - name: Check Postfix configuration (optional but recommended)
+      ansible.builtin.command:
+        cmd: postfix check
+      changed_when: false # Dieser Befehl ändert nichts
+
+    - name: Ensure Postfix service is enabled and running
+      ansible.builtin.systemd:
+        name: postfix
+        enabled: yes
+        state: started # Stellt sicher, dass es läuft, startet es aber nicht unbedingt neu (Handler dafür)
+
+    - name: Display Postfix effective configuration (optional debug)
+      ansible.builtin.command:
+        cmd: postconf -n
+      changed_when: false
+      register: postconf_output
+    - name: Show postconf output
+      ansible.builtin.debug:
+        var: postconf_output.stdout_lines
+      when: postconf_output.stdout_lines is defined
+
+  handlers:
+    - name: Update Postfix sender_canonical map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/sender_canonical
+      notify: Restart Postfix # Nach dem Mapping muss Postfix die Änderungen neu laden
+
+    - name: Validate Postfix Config
+      ansible.builtin.command:
+        cmd: postfix check
+      changed_when: false
+
+    - name: Restart Postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted

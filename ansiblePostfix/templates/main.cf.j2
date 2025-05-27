@@ -1,0 +1,43 @@
+# Ansible Managed: {{ ansible_managed }}
+
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+compatibility_level = 3.6
+
+smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_use_tls=yes
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+# smtp_tls_security_level = may
+# smtp_address_preference = ipv4
+
+smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+
+# myhostname => öffentlicher FQDN
+myhostname = {{ public_fqdn }}
+
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+
+# myorigin verwendet /etc/mailname => öffentlicher FQDN
+myorigin = /etc/mailname
+
+# mydestination sollte den öffentlichen FQDN ($myhostname) enthalten
+# sowie den internen FQDN und localhost Varianten
+mydestination = {{ public_fqdn }}, {{ ansible_facts.fqdn }}, localhost.{{ ansible_facts.domain | default('') }}, localhost, localhost.localdomain
+
+relayhost = {{ postfix_relay_host }}
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+# inet_protocols = all
+# Wenn du IPv6 für SMTP ganz deaktivieren willst (nicht nur Präferenz für ausgehend):
+# inet_protocols = ipv4
+
+# Hinzugefügte Konfigurationen für korrekte Absenderadresse
+masquerade_domains = $myhostname
+sender_canonical_maps = hash:/etc/postfix/sender_canonical

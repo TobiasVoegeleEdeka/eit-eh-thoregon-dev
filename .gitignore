@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*.backup
+# *.tfvars # Oft ignoriert, wenn sensible Daten enthalten sind oder um Konflikte zu vermeiden
+*.tfplan
+terraform.tfvars.example # Behalte Beispiel-tfvars, wenn du welche hast
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Azure specific
+.azure/
