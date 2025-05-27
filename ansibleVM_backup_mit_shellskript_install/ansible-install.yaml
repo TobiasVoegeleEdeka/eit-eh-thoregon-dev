@@ -1,0 +1,100 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - postfix
+  - mailutils 
+
+# Variablen fur FQDN
+# vars:
+#   PUBLIC_FQDN: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+#   MAIL_USER: "ansiblemin"
+# Cloud-init hat keine direkte 'vars'-Sektion. Diese Werte müssen direkt im Skript verwendet werden.
+
+
+debconf_selections: |
+  postfix postfix/main_mailer_type string 'Internet Site'
+  # mailname direkt auf den öffentlichen FQDN setzen
+  postfix postfix/mailname string "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+  # $(hostname -f) ist hier ok, da mydestination in main.cf präziser ist
+  postfix postfix/destinations string "$(hostname -f),localhost.localdomain,localhost"
+
+write_files:
+  - path: /etc/mailname
+    content: |
+      ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com
+    permissions: '0644'
+    owner: root:root
+
+  - path: /etc/postfix/sender_canonical
+    # Leere Datei, wird durch runcmd befüllt, um $(hostname -f) korrekt zu verwenden
+    content: ""
+    permissions: '0600' # Berechtigungen für Canonical Maps
+    owner: root:root
+
+  - path: /etc/postfix/main.cf
+    content: |
+      smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+      biff = no
+      append_dot_mydomain = no
+      readme_directory = no
+      compatibility_level = 3.6
+
+      smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+      smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+      smtpd_use_tls=yes
+      smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+      smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+      # Optional: smtp_tls_security_level = may (oft Standard, aber explizit ist besser)
+      # smtp_tls_security_level = may
+      # Optional: IPv4 für ausgehende Mails bevorzugen, um IPv6-Verzögerungen zu vermeiden
+      # smtp_address_preference = ipv4
+
+      smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+      
+      # myhostname => öffentlicher FQDN
+      myhostname = ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com
+      
+      alias_maps = hash:/etc/aliases
+      alias_database = hash:/etc/aliases # Wird durch newaliases in runcmd erstellt/aktualisiert
+      
+      # myorigin verwendet  /etc/mailname => öffentlicher FQDN 
+      myorigin = /etc/mailname
+      
+      # mydestination sollte den öffentlichen FQDN ($myhostname) enthalten
+      mydestination = $myhostname, localhost.$mydomain, localhost, localhost.localdomain
+      
+      relayhost = [smtp.communication.azure.com]:587
+      mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+      mailbox_size_limit = 0
+      recipient_delimiter = +
+      inet_interfaces = all 
+      # inet_protocols = all # Behalte 'all' bei, es sei denn, IPv6 macht nur Probleme
+      # Wenn du IPv6 für SMTP ganz deaktivieren willst (nicht nur Präferenz für ausgehend):
+      # inet_protocols = ipv4
+
+      # Hinzugefügte Konfigurationen für korrekte Absenderadresse
+      masquerade_domains = $myhostname
+      sender_canonical_maps = hash:/etc/postfix/sender_canonical
+      
+    permissions: '0644'
+    owner: root:root
+
+runcmd:
+  - apt-get update
+  # Befülle /etc/postfix/sender_canonical
+  # Dies verwendet den internen FQDN für die linke Seite und den öffentlichen für die rechte Seite
+  - bash -c 'INTERNAL_FQDN=$(hostname -f); PUBLIC_FQDN="ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"; MAIL_USER="ansiblemin"; echo "${MAIL_USER}@${INTERNAL_FQDN} ${MAIL_USER}@${PUBLIC_FQDN}" > /etc/postfix/sender_canonical'
+  - bash -c 'INTERNAL_FQDN=$(hostname -f); PUBLIC_FQDN="ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"; echo "@${INTERNAL_FQDN} @${PUBLIC_FQDN}" >> /etc/postfix/sender_canonical'
+  
+  # Erstellt .db-Datei für sender_canonical_maps
+  - postmap /etc/postfix/sender_canonical
+  
+  # Erstellt/Aktualisiert die Alias-Datenbank
+  - newaliases
+  
+  # Postfix Konfiguration abschließen und starten
+  - postfix check
+  - systemctl enable postfix
+  - systemctl restart postfix
+  - postconf -n 
