@@ -6,38 +6,44 @@ append_dot_mydomain = no
 readme_directory = no
 compatibility_level = 3.6
 
+# TLS-Einstellungen für eingehende Verbindungen (smtpd)
 smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
 smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
 smtpd_use_tls=yes
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+
+# TLS-Einstellungen für ausgehende Verbindungen (smtp client)
 smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-# smtp_tls_security_level = may
-# smtp_address_preference = ipv4
+smtp_tls_security_level = encrypt  # Erzwingt TLS für ausgehende Mails
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt # Pfad zu den CA-Zertifikaten
+smtp_tls_loglevel = 1 # Erhöht das TLS-Logging-Level
+smtp_address_preference = ipv4 # Bevorzugt IPv4 für ausgehende Verbindungen
 
 smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 
-# myhostname => öffentlicher FQDN
-myhostname = {{ public_fqdn }}
+# myhostname => öffentlicher FQDN (direkt gesetzt)
+myhostname = {{ public_fqdn | default('ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com') }}
 
 alias_maps = hash:/etc/aliases
 alias_database = hash:/etc/aliases
 
 # myorigin verwendet /etc/mailname => öffentlicher FQDN
-myorigin = /etc/mailname
+myorigin = /etc/mailname # Stelle sicher, dass /etc/mailname den public_fqdn enthält
 
 # mydestination sollte den öffentlichen FQDN ($myhostname) enthalten
-# sowie den internen FQDN und localhost Varianten
-mydestination = {{ public_fqdn }}, {{ ansible_facts.fqdn }}, localhost.{{ ansible_facts.domain | default('') }}, localhost, localhost.localdomain
+# sowie localhost Varianten. $mydomain wird von Postfix aus $myhostname abgeleitet.
+mydestination = $myhostname, localhost.$mydomain, localhost, localhost.localdomain
 
-relayhost = {{ postfix_relay_host }}
+# Wichtig für Direktversand: relayhost leer lassen
+relayhost = {{ postfix_relay_host | default('') }} # Standardmäßig leer, kann aber per Variable gesetzt werden
+
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
 mailbox_size_limit = 0
 recipient_delimiter = +
-inet_interfaces = all
-# inet_protocols = all
-# Wenn du IPv6 für SMTP ganz deaktivieren willst (nicht nur Präferenz für ausgehend):
-# inet_protocols = ipv4
+inet_interfaces = all # Stellt sicher, dass Postfix auf allen Interfaces lauscht
+inet_protocols = ipv4 # Nur IPv4 verwenden
+smtputf8_enable = yes # Hinzugefügt für UTF8-Support
 
-# Hinzugefügte Konfigurationen für korrekte Absenderadresse
-masquerade_domains = $myhostname
+# Konfigurationen für korrekte Absenderadresse
+masquerade_domains = $myhostname # Stellt sicher, dass lokale User als user@myhostname senden
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
