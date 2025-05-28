@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.100" 
+      version = "~> 3.100"
     }
   }
 }
@@ -43,31 +43,41 @@ resource "azurerm_network_security_group" "nsg" {
 
   security_rule {
     name                       = "AllowSSHIpv4"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = var.allow_ssh_ipv4_cidr 
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "AllowSSHIpv6"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = var.allow_ssh_ipv6_cidr 
+    source_address_prefix      = var.allow_ssh_ipv4_cidr
     destination_address_prefix = "*"
   }
 
+  security_rule {
+    name                       = "AllowSSHIpv6"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = var.allow_ssh_ipv6_cidr
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "AllowSMTPSubmissionOutbound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "587"
+    source_address_prefix      = "*"
+    destination_address_prefix = "Internet"
+  }
 
   dynamic "security_rule" {
-    for_each = var.additional_inbound_nsg_rules 
+    for_each = var.additional_inbound_nsg_rules
 
     content {
       name                       = security_rule.value.name
@@ -81,7 +91,7 @@ resource "azurerm_network_security_group" "nsg" {
       destination_address_prefix = security_rule.value.destination_address_prefix
     }
   }
-} 
+}
 
 resource "azurerm_network_interface" "nic" {
   name                = "${var.vm_name}-nic"
@@ -127,7 +137,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = "latest"
   }
 
-  
+
   custom_data = base64encode(file("${path.module}/ansible-install.yaml"))
 
   depends_on = [

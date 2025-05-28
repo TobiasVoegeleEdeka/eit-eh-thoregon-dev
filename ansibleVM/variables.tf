@@ -76,7 +76,7 @@ variable "additional_inbound_nsg_rules" {
     # SMTP-Regel für Port 25
     {
       name                       = "AllowSMTPInbound"
-      priority                   = 120 
+      priority                   = 130 
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -85,18 +85,18 @@ variable "additional_inbound_nsg_rules" {
       source_address_prefix      = "Internet" 
       destination_address_prefix = "*"
     },
-    # SMTP Submission-Regel für Port 587
-    {
-      name                       = "AllowSMTPSubmissionInbound"
-      priority                   = 130 
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      source_port_range          = "*"
-      destination_port_range     = "587"
-      source_address_prefix      = "Internet" 
-      destination_address_prefix = "*"
-    }
+    # # SMTP Submission-Regel für Port 587
+    # {
+    #   name                       = "AllowSMTPOutnbound"
+    #   priority                   = 100 
+    #   direction                  = "Outbound"
+    #   access                     = "Allow"
+    #   protocol                   = "Tcp"
+    #   source_port_range          = "*"
+    #   destination_port_range     = "587"
+    #   source_address_prefix      = "Internet" 
+    #   destination_address_prefix = "*"
+    # }
    
   ]
 }
