@@ -11,7 +11,7 @@ main_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
 # Dies muss eine Domain sein, die Sie besitzen und für die Sie DNS-Einträge (SPF) verwalten.
 sending_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
-
+postfix_internal_fqdn_for_generic_map: "AnsibleControlCenter.iux2jl1fzdbepmzoucqckqdd3g.parx.internal.cloudapp.net"
 # --- Benutzerkonfiguration ---
 # Der lokale Benutzer auf der VM
 mail_user: "ansiblemin"
