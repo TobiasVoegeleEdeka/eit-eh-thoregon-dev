@@ -1,2 +1,10 @@
-{{ mail_user }}@{{ ansible_facts.fqdn }} {{ mail_user }}@{{ public_fqdn }}
-@{{ ansible_facts.fqdn }} @{{ public_fqdn }}
+{# {{ mail_user }}@{{ ansible_facts.fqdn }} {{ mail_user }}@{{ public_fqdn }}
+@{{ ansible_facts.fqdn }} @{{ public_fqdn }} #}
+{% for mapping in sender_canonical_mappings %}
+{{ mapping.key }}    {{ mapping.value }}
+{% endfor %}
+
+sender_canonical_mappings:
+  - { key: 'root', value: 'noreply@ihre-domain.de' }
+  - { key: 'ubuntu', value: 'noreply@ihre-domain.de' }
+  - { key: 'www-data', value: 'webmaster@ihre-domain.de' }

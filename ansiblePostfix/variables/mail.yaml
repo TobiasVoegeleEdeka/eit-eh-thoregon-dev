@@ -1,4 +1,5 @@
 ---
 public_fqdn: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+main_domain: francecentral.cloudapp.azure.com 
 mail_user: "ansiblemin"
 postfix_relay_host: "[smtp.communication.azure.com]:587"
