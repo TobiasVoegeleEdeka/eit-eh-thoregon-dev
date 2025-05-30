@@ -15,6 +15,8 @@ sending_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 # Der lokale Benutzer auf der VM
 mail_user: "ansiblemin"
 
+admin_email: "tobias.voegele@edeka.de"
+
 # --- Absender-Umschreibungen ---
 # Sorgt dafür, dass System-Mails eine saubere Absenderadresse
 # mit Ihrer eigenen Domain erhalten.
