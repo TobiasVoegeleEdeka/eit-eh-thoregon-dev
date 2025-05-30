@@ -77,7 +77,7 @@ alias_database = hash:/etc/aliases
 
 # Umschreiben der Absenderadresse
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
-masquerade_domains = ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com
+masquerade_domains = $myhostname
 
 # Sicherheitseinstellungen
 smtpd_banner = $myhostname ESMTP
