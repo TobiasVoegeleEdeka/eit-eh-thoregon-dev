@@ -58,7 +58,7 @@ sender_canonical_maps = hash:/etc/postfix/sender_canonical #}
 myhostname = {{ public_fqdn }}
 
 # Your server's parent domain. Postfix derives this from $myhostname.
-mydomain = $mydomain
+# mydomain = $mydomain
 
 # The default domain for outgoing mail from local users.
 myorigin = $myhostname
