@@ -3,7 +3,7 @@
   hosts: all # Ändere dies zu deiner Zielgruppe, z.B. mailservers
   become: yes
   vars_files:
-    - vars/mail_vars.yml # Lädt die Variablen
+    - variables/mail.yaml 
 
   tasks:
     - name: Update apt cache and upgrade packages

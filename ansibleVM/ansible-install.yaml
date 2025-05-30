@@ -1,7 +1,7 @@
 #cloud-config
 # Installiert Ansible, Go, Docker, Java, Git und erstellt Ordner.
 # Terraform-Installation wird weiterhin übersprungen.
-# Benutzererstellung aus cloud-init entfernt, da dies durch Terraform/Azure geschieht.
+
 
 # Systempakete aktualisieren
 package_update: true
