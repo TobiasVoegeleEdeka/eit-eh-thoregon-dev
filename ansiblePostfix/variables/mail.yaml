@@ -1,5 +1,24 @@
 ---
+# /variables/mail.yaml
+
+# --- Server-Identität ---
+# Der offizielle, technische FQDN des Servers.
+# Dieser MUSS mit dem PTR-Eintrag (Reverse DNS) Ihrer IP übereinstimmen.
 public_fqdn: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
-main_domain: francecentral.cloudapp.azure.com 
+
+# --- E-Mail-/Marken-Identität ---
+# Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
+# Dies muss eine Domain sein, die Sie besitzen und für die Sie DNS-Einträge (SPF) verwalten.
+sending_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+
+# --- Benutzerkonfiguration ---
+# Der lokale Benutzer auf der VM
 mail_user: "ansiblemin"
-postfix_relay_host: "[smtp.communication.azure.com]:587"
+
+# --- Absender-Umschreibungen ---
+# Sorgt dafür, dass System-Mails eine saubere Absenderadresse
+# mit Ihrer eigenen Domain erhalten.
+sender_canonical_mappings:
+  - { key: 'root', value: 'noreply@{{ sending_domain }}' }
+  - { key: 'ansiblemin', value: 'admin@{{ sending_domain }}' }
+  # Fügen Sie hier weitere lokale Benutzer hinzu, falls nötig

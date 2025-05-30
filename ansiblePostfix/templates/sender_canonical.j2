@@ -1,10 +1,14 @@
 {# {{ mail_user }}@{{ ansible_facts.fqdn }} {{ mail_user }}@{{ public_fqdn }}
 @{{ ansible_facts.fqdn }} @{{ public_fqdn }} #}
+
 {% for mapping in sender_canonical_mappings %}
+{{ mapping.key }}    {{ mapping.value }}
+{% endfor %}
+{# {% for mapping in sender_canonical_mappings %}
 {{ mapping.key }}    {{ mapping.value }}
 {% endfor %}
 
 sender_canonical_mappings:
   - { key: 'root', value: 'noreply@francecentral.cloudapp.azure.com' }
   - { key: 'ubuntu', value: 'noreply@francecentral.cloudapp.azure.com' }
-  - { key: 'www-data', value: 'webmaster@francecentral.cloudapp.azure.com' }
+  - { key: 'www-data', value: 'webmaster@francecentral.cloudapp.azure.com' } #}
