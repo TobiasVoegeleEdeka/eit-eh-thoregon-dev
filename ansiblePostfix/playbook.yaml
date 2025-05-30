@@ -29,7 +29,7 @@
     - name: Obtain Let's Encrypt certificate
       ansible.builtin.command:
         # Führt den Befehl nur aus, wenn die Zertifikatsdatei noch nicht existiert
-        cmd: "certbot certonly --standalone -d {{ public_fqdn }} --email {{ admin_email }} --agree-tos --non-interactive"
+        cmd: "certbot certonly --standalone -d {{ public_fqdn }} --email {{ mail_user }} --agree-tos --non-interactive"
         creates: "/etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem"
     # =====================================================================
     # ### ENDE DER NEUEN TASKS ###
