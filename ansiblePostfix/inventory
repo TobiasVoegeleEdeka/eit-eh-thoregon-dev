@@ -3,7 +3,7 @@
 # ===============================================
 
 [mailserver]
-mail.ihre-domain.de
+francecentral.cloudapp.azure.com
 
 [mailserver:vars]
 ansible_user=ansiblemain
