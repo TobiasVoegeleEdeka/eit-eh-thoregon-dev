@@ -6,6 +6,7 @@
 # Dieser MUSS mit dem PTR-Eintrag (Reverse DNS) Ihrer IP übereinstimmen.
 public_fqdn: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 
+main_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 # --- E-Mail-/Marken-Identität ---
 # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
 # Dies muss eine Domain sein, die Sie besitzen und für die Sie DNS-Einträge (SPF) verwalten.
