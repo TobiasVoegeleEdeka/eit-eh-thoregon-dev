@@ -72,7 +72,7 @@
       # Alternativ als Teil des Handlers. Für dieses Beispiel lassen wir es als expliziten Schritt
       # der vom Handler "Update Postfix sender_canonical map" aufgerufen wird.
       # (siehe Handler unten)
-      listen: Update Postfix sender_canonical map # Dieser Task kann durch den Notify getriggert werden.
+      #listen: Update Postfix sender_canonical map # Dieser Task kann durch den Notify getriggert werden.
 
     - name: Update alias database
       ansible.builtin.command:
