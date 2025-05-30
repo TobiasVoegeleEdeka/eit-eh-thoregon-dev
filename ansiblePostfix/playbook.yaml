@@ -1,6 +1,6 @@
 ---
 - name: Configure Postfix Mail Server
-  hosts: mailserver # Ich habe dies zu 'mailserver' geändert, um Ihrer inventory.ini zu entsprechen
+  hosts: mailserver
   become: yes
   vars_files:
     - variables/mail.yaml 
@@ -18,9 +18,6 @@
           - mailutils
         state: present
 
-    # =====================================================================
-    # ### NEUE TASKS FÜR LETS ENCRYPT HINZUGEFÜGT ###
-    # =====================================================================
     - name: Install Certbot for Let's Encrypt
       ansible.builtin.apt:
         name: certbot
@@ -28,12 +25,8 @@
 
     - name: Obtain Let's Encrypt certificate
       ansible.builtin.command:
-        # Führt den Befehl nur aus, wenn die Zertifikatsdatei noch nicht existiert
         cmd: "certbot certonly --standalone -d {{ public_fqdn }} --email {{ admin_email }} --agree-tos --non-interactive"
         creates: "/etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem"
-    # =====================================================================
-    # ### ENDE DER NEUEN TASKS ###
-    # =====================================================================
 
     - name: Set debconf selections for Postfix
       ansible.builtin.debconf:
@@ -48,7 +41,7 @@
 
     - name: Configure /etc/mailname
       ansible.builtin.template:
-        src: templates/mailname.j2
+        src: templates/mailname.j2 
         dest: /etc/mailname
         owner: root
         group: root
@@ -57,7 +50,8 @@
 
     - name: Configure /etc/postfix/main.cf
       ansible.builtin.template:
-        src: templates/main.cf.j2
+        src: templates/main.cf.j2  
+                                   
         dest: /etc/postfix/main.cf
         owner: root
         group: root
@@ -73,12 +67,25 @@
         mode: '0600'
       notify: Update Postfix sender_canonical map
 
-    # ... (der Rest Ihrer Tasks bleibt unverändert) ...
+   
+    - name: Create/Update /etc/postfix/generic map file
+      ansible.builtin.copy:
+        dest: /etc/postfix/generic
+        content: |
+          # Map problematic internal sender address to public address
+          ansiblemin@{{ postfix_internal_fqdn_for_generic_map }}    admin@{{ public_fqdn }}
+          # Add other explicit mappings if needed, e.g., for root
+          root@{{ postfix_internal_fqdn_for_generic_map }}    noreply@{{ public_fqdn }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Update Postfix generic map
+    # ### END OF NEW TASK ###
 
     - name: Update alias database
       ansible.builtin.command:
         cmd: newaliases
-      changed_when: false
+      changed_when: false # newaliases doesn't indicate changes well via exit code
       notify: Restart Postfix
 
     - name: Check Postfix configuration (optional but recommended)
@@ -109,7 +116,13 @@
         cmd: postmap /etc/postfix/sender_canonical
       notify: Restart Postfix
 
-    - name: Validate Postfix Config
+    - name: Update Postfix generic map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/generic
+      notify: Restart Postfix
+    
+
+    - name: Validate Postfix Config 
       ansible.builtin.command:
         cmd: postfix check
       changed_when: false

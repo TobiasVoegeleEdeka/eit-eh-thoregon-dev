@@ -70,7 +70,7 @@ masquerade_domains = $myhostname
 
 # Apply specific user-to-address mappings (e.g., root -> noreply@...).
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
-
+smtp_generic_maps = hash:/etc/postfix/generic
 # --- Destination & Network Configuration ---
 # Domains that this server will accept mail for as the final destination.
 mydestination = $myhostname, localhost.$mydomain, localhost
