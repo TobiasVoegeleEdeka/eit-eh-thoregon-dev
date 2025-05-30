@@ -2,7 +2,7 @@
 .terraform/
 *.tfstate
 *.tfstate.*.backup
-# *.tfvars # Oft ignoriert, wenn sensible Daten enthalten sind oder um Konflikte zu vermeiden
+# *.tfvars # muss noch raus aufgrund sensibler daten spaeter
 *.tfplan
 terraform.tfvars.example # Behalte Beispiel-tfvars, wenn du welche hast
 .terraform.lock.hcl

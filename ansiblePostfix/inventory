@@ -1,0 +1,11 @@
+# ===============================================
+# Ansible Inventory für den Mailserver
+# ===============================================
+
+[mailserver]
+localhost ansible_connection=local
+
+[mailserver:vars]
+ansible_user=ansiblemain
+
+ansible_ssh_private_key_file=~/.ssh/id_ed25519
