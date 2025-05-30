@@ -77,6 +77,7 @@ alias_database = hash:/etc/aliases
 
 # Umschreiben der Absenderadresse
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
+masquerade_domains = ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com
 
 # Sicherheitseinstellungen
 smtpd_banner = $myhostname ESMTP
@@ -84,10 +85,10 @@ biff = no
 append_dot_mydomain = no
 readme_directory = no
 
-# TLS-Parameter (empfohlen für die Produktion, hier als Platzhalter)
+# TLS-Parameter
 smtpd_tls_cert_file = /etc/letsencrypt/live/ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com/fullchain.pem
 smtpd_tls_key_file = /etc/letsencrypt/live/ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com/privkey.pem
-smtpd_tls_security_level = may
+smtpd_tls_security_level = encrypt
 smtpd_use_tls=yes
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
 smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
