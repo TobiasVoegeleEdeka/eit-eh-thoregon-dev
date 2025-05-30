@@ -3,13 +3,13 @@
 
 # --- Server-Identität ---
 # Der offizielle, technische FQDN des Servers.
-# Dieser MUSS mit dem PTR-Eintrag (Reverse DNS) Ihrer IP übereinstimmen.
+# Dieser MUSS mit dem PTR-Eintrag (Reverse DNS) userer IP übereinstimmen.
 public_fqdn: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 
 main_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 # --- E-Mail-/Marken-Identität ---
 # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
-# Dies muss eine Domain sein, die Sie besitzen und für die Sie DNS-Einträge (SPF) verwalten.
+# Dies muss eine Domain sein, die wir besitzen und für die wir DNS-Einträge (SPF) verwalten.
 sending_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
 postfix_internal_fqdn_for_generic_map: "AnsibleControlCenter.iux2jl1fzdbepmzoucqckqdd3g.parx.internal.cloudapp.net"
 # --- Benutzerkonfiguration ---
@@ -24,4 +24,3 @@ admin_email: "tobias.voegele@edeka.de"
 sender_canonical_mappings:
   - { key: 'root', value: 'noreply@{{ sending_domain }}' }
   - { key: 'ansiblemin', value: 'admin@{{ sending_domain }}' }
-  # Fügen Sie hier weitere lokale Benutzer hinzu, falls nötig
