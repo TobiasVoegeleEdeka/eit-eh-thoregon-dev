@@ -66,7 +66,7 @@ myorigin = $myhostname
 # --- Address Rewriting ---
 # Rewrite the domain for all local users to appear as if from the public domain.
 # This fixes "Domain not found" errors for outgoing mail.
-masquerade_domains = $mydomain
+masquerade_domains = $myhostname
 
 # Apply specific user-to-address mappings (e.g., root -> noreply@...).
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
