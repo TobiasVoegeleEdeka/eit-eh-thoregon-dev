@@ -1,0 +1,50 @@
+#cloud-config
+# Dieses cloud-config Skript aktualisiert das System, installiert Docker und Docker Compose
+# und fügt den Standardbenutzer zur Docker-Gruppe hinzu.
+
+# 1. Paketquellen aktualisieren und notwendige Pakete installieren
+package_update: true
+package_upgrade: true # Optional: Führt ein Upgrade aller Pakete durch
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+
+# 2. Docker GPG-Schlüssel und Repository hinzufügen, Docker installieren und Benutzer konfigurieren
+runcmd:
+  # Docker GPG-Schlüssel hinzufügen
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+
+  # Docker Repository hinzufügen
+  - |
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  # Paketquellen erneut aktualisieren (nach Hinzufügen des Docker-Repos)
+  - apt-get update -y
+
+  # Docker Engine, CLI, Containerd und Compose Plugin installieren
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Docker Compose v2 als 'docker-compose' Symlink erstellen
+  # Stellt sicher, dass der Befehl 'docker-compose' systemweit verfügbar ist
+  - ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+  # Den Standard-Admin-Benutzer (oft 'ubuntu' oder 'azureuser' auf Azure VMs) zur Docker-Gruppe hinzufügen
+  # Dies ermöglicht das Ausführen von Docker-Befehlen ohne 'sudo'.
+  # Der tatsächliche Benutzername kann je nach Cloud-Image variieren.
+  # 'azureuser' ist ein gängiger Standard für von Azure bereitgestellte Ubuntu-Images.
+  # Wenn Sie einen anderen Benutzernamen in Terraform definieren (var.admin_username),
+  # müssten Sie diesen Namen hier anpassen oder das Skript so gestalten,
+  # dass es den primären Benutzer dynamisch ermittelt, was komplexer ist.
+  # Für die meisten Azure-Szenarien mit Ubuntu ist 'azureuser' oder der in Terraform
+  # als admin_username angegebene Benutzername korrekt.
+  # Das Bash-Skript verwendete 'azureadmin', was wir hier als Beispiel beibehalten,
+  # aber es ist wichtig, dass dieser Benutzer auf der VM existiert.
+  # Wenn Terraform 'var.admin_username' verwendet, sollte dieser Name hier stehen.
+  # Für dieses Beispiel nehmen wir an, 'azureadmin' ist der korrekte Benutzer.
+  - usermod -aG docker azureadmin
