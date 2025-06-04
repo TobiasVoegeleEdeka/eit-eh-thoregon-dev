@@ -44,7 +44,7 @@ resource "azurerm_network_security_group" "vm_nsg" {
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
   tags                = var.tags
-  
+
 
   security_rule {
     name                       = "AllowSSHFromAdmin"
@@ -82,7 +82,7 @@ resource "azurerm_network_security_group" "vm_nsg" {
     destination_address_prefix = "*"
   }
 
-  
+
 
   # Neue Regel: Erlaubt eingehenden Mail-Verkehr von anderen Mail-Servern
   security_rule {
@@ -109,10 +109,10 @@ resource "azurerm_network_security_group" "vm_nsg" {
     source_address_prefix      = "VirtualNetwork" # Zugriff nur aus Ihrem VNet
     destination_address_prefix = "*"
   }
-# Regel fuer Lets Encrypt ( offene , automatisierte Zertifizierungstelle) 
+# Regel fuer Lets Encrypt ( offene , automatisierte Zertifizierungstelle)
   security_rule {
     name                       = "AllowLetsEncryptHTTPChallenge"
-    priority                   = 150 
+    priority                   = 150
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
@@ -247,6 +247,7 @@ resource "azurerm_public_ip" "postfix_vm_pip" {
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = var.tags
+  domain_name_label   = lower(var.postfix_vm_name) # <--- HINZUGEFÜGT für FQDN
 }
 
 resource "azurerm_network_interface" "postfix_vm_nic" {
@@ -324,4 +325,9 @@ output "postfix_vm_public_ip" {
 output "postfix_vm_private_ip" {
   description = "Private IP address of the Postfix VM."
   value       = azurerm_network_interface.postfix_vm_nic.private_ip_address
+}
+
+output "postfix_vm_fqdn" { # <--- HINZUGEFÜGT für FQDN
+  description = "Fully Qualified Domain Name of the Postfix VM."
+  value       = azurerm_public_ip.postfix_vm_pip.fqdn
 }

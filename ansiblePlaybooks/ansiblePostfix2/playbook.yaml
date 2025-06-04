@@ -1,0 +1,133 @@
+---
+- name: Configure Postfix Mail Server
+  hosts: mailserver
+  become: yes
+  vars_files:
+    - variables/mail.yaml 
+
+  tasks:
+    - name: Update apt cache and upgrade packages
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install Postfix and mailutils
+      ansible.builtin.apt:
+        name:
+          - postfix
+          - mailutils
+        state: present
+
+    - name: Install Certbot for Let's Encrypt
+      ansible.builtin.apt:
+        name: certbot
+        state: present
+
+    - name: Obtain Let's Encrypt certificate
+      ansible.builtin.command:
+        cmd: "certbot certonly --standalone -d {{ public_fqdn }} --email {{ admin_email }} --agree-tos --non-interactive"
+        creates: "/etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem"
+
+    - name: Set debconf selections for Postfix
+      ansible.builtin.debconf:
+        name: postfix
+        question: "{{ item.question }}"
+        value: "{{ item.value }}"
+        vtype: "{{ item.vtype }}"
+      loop:
+        - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'string' }
+        - { question: 'postfix/mailname', value: "{{ public_fqdn }}", vtype: 'string' }
+      notify: Restart Postfix
+
+    - name: Configure /etc/mailname
+      ansible.builtin.template:
+        src: templates/mailname.j2 
+        dest: /etc/mailname
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Postfix
+
+    - name: Configure /etc/postfix/main.cf
+      ansible.builtin.template:
+        src: templates/main.cf.j2  
+                                   
+        dest: /etc/postfix/main.cf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Postfix
+
+    - name: Create/Update /etc/postfix/sender_canonical
+      ansible.builtin.template:
+        src: templates/sender_canonical.j2
+        dest: /etc/postfix/sender_canonical
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Update Postfix sender_canonical map
+
+   
+    - name: Create/Update /etc/postfix/generic map file
+      ansible.builtin.copy:
+        dest: /etc/postfix/generic
+        content: |
+          # Map problematic internal sender address to public address
+          ansiblemin@{{ postfix_internal_fqdn_for_generic_map }}    admin@{{ public_fqdn }}
+          # Add other explicit mappings if needed, e.g., for root
+          root@{{ postfix_internal_fqdn_for_generic_map }}    noreply@{{ public_fqdn }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Update Postfix generic map
+    # ### END OF NEW TASK ###
+
+    - name: Update alias database
+      ansible.builtin.command:
+        cmd: newaliases
+      changed_when: false # newaliases doesn't indicate changes well via exit code
+      notify: Restart Postfix
+
+    - name: Check Postfix configuration (optional but recommended)
+      ansible.builtin.command:
+        cmd: postfix check
+      changed_when: false
+
+    - name: Ensure Postfix service is enabled and running
+      ansible.builtin.systemd:
+        name: postfix
+        enabled: yes
+        state: started
+
+    - name: Display Postfix effective configuration (optional debug)
+      ansible.builtin.command:
+        cmd: postconf -n
+      changed_when: false
+      register: postconf_output
+      
+    - name: Show postconf output
+      ansible.builtin.debug:
+        var: postconf_output.stdout_lines
+      when: postconf_output.stdout_lines is defined
+
+  handlers:
+    - name: Update Postfix sender_canonical map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/sender_canonical
+      notify: Restart Postfix
+
+    - name: Update Postfix generic map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/generic
+      notify: Restart Postfix
+    
+
+    - name: Validate Postfix Config 
+      ansible.builtin.command:
+        cmd: postfix check
+      changed_when: false
+
+    - name: Restart Postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
