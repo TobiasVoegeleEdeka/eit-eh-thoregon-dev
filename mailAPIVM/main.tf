@@ -134,7 +134,7 @@ resource "azurerm_linux_virtual_machine" "api_vm" {
   size                  = var.vm_size
   admin_username        = var.admin_username
   network_interface_ids = [azurerm_network_interface.api_vm_nic.id]
-  custom_data           = var.api_vm_custom_data_path != null ? base64encode(file(var.api_vm_custom_data_path)) : null
+  #custom_data           = var.api_vm_custom_data_path != null ? base64encode(file(var.api_vm_custom_data_path)) : null
   tags                  = var.tags
 
   admin_ssh_key {

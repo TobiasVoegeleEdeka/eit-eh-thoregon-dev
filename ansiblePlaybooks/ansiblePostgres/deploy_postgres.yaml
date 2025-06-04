@@ -6,8 +6,8 @@
   become: yes 
 
   tasks:
-    # --- 1. Docker installieren ---
-    - name: Install prerequisite packages for Docker
+    # --- 1. System-Voraussetzungen installieren ---
+    - name: Install prerequisite packages
       ansible.builtin.apt:
         name:
           - apt-transport-https
@@ -15,9 +15,11 @@
           - curl
           - gnupg
           - lsb-release
+          - python3-pip  # Hinzugefügt, um sicherzustellen, dass pip verfügbar ist
         state: present
         update_cache: yes
 
+    # --- 2. Docker Engine installieren ---
     - name: Create directory for Docker's GPG key
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -40,7 +42,7 @@
         state: present
         filename: docker
 
-    - name: Install Docker Engine and Docker Compose
+    - name: Install Docker Engine and Docker Compose plugin
       ansible.builtin.apt:
         name:
           - docker-ce
@@ -50,7 +52,13 @@
         state: present
         update_cache: yes
 
-    # --- 2. Docker Compose Projekt aufsetzen ---
+    # --- 3. Python-Abhängigkeiten für Ansible Docker-Module installieren ---
+    - name: Install Docker SDK for Python (required for Ansible modules)
+      ansible.builtin.pip:
+        name: docker
+        state: present
+
+    # --- 4. Docker Compose Projekt aufsetzen und starten ---
     - name: Create a directory for the postgres service
       ansible.builtin.file:
         path: /opt/postgres
