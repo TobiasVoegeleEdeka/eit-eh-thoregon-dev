@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0" # Consider updating to a more recent version if appropriate, e.g., ~> 3.100
+      version = "~> 3.0" 
     }
   }
 }
@@ -69,7 +69,7 @@ resource "azurerm_network_security_group" "vm_nsg" {
     source_address_prefix      = var.allow_ansible_vm_ipv4_cidr
     destination_address_prefix = "*"
   }
-
+#  VNet und  Azure environment muessen IPv6 unterstuetzen damit das geht 
   security_rule {
     name                       = "AllowSSH_IPv6"
     priority                   = 110
@@ -78,11 +78,11 @@ resource "azurerm_network_security_group" "vm_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = var.allow_ssh_ipv6_cidr # Ensure your VNet and Azure environment support IPv6 if using this
+    source_address_prefix      = var.allow_ssh_ipv6_cidr 
     destination_address_prefix = "*"
   }
 
-  # Fügen Sie hier später spezifischere Regeln hinzu.
+  # Spezifischere Werte fuer den Endzustand spaeter
   # z.B. um Port 5432 nur von der API-VM zur DB-VM zu erlauben.
   # security_rule {
   #   name                       = "AllowPostgresFromApiVM"

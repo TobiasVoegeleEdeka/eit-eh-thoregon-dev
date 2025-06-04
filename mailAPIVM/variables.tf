@@ -73,20 +73,20 @@ variable "db_vm_name" {
 variable "vm_size" {
   description = "Größe der VMs (z.B. 'Standard_B2s')."
   type        = string
-  default     = "Standard_B1s" # Kostengünstige Größe für den Start
+  default     = "Standard_B1s" 
 }
 
 variable "api_vm_custom_data_path" {
   description = "Pfad zur Custom Data Datei für die API VM (z.B. \"./mail.api.yaml\"). Auf null setzen, wenn nicht verwendet."
   type        = string
-  default     = "./mail.api.yaml" # Annahme: Datei im selben Verzeichnis
+  default     = "./mail.api.yaml"
   nullable    = true
 }
 
 variable "db_vm_custom_data_path" {
   description = "Pfad zur Custom Data Datei für die DB VM (z.B. \"./mail.db.yaml\"). Auf null setzen, wenn nicht verwendet."
   type        = string
-  default     = "./mail.api.yaml" # Ggf. anpassen, falls eine andere Datei für die DB VM benötigt wird
+  default     = "./mail.api.yaml" 
   nullable    = true
 }
 
@@ -106,7 +106,7 @@ variable "allow_ansible_vm_ipv4_cidr" {
 variable "allow_ssh_ipv6_cidr" {
   description = "IPv6 CIDR-Block für erlaubten SSH-Zugriff. Beispiel: Ihre öffentliche IPv6 /128."
   type        = string
-  default     = "2001:4860:7:1410::f4/128" # Beispielwert, bitte an Ihre IP anpassen (oder "::/0" falls nicht benötigt/offen)
+  default     = "2001:4860:7:1410::f4/128" 
 }
 
 variable "tags" {
