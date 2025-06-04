@@ -44,6 +44,7 @@ resource "azurerm_network_security_group" "vm_nsg" {
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
   tags                = var.tags
+  
 
   security_rule {
     name                       = "AllowSSHFromAdmin"
@@ -81,6 +82,8 @@ resource "azurerm_network_security_group" "vm_nsg" {
     destination_address_prefix = "*"
   }
 
+  
+
   # Neue Regel: Erlaubt eingehenden Mail-Verkehr von anderen Mail-Servern
   security_rule {
     name                       = "AllowSMTPInbound"
@@ -106,6 +109,19 @@ resource "azurerm_network_security_group" "vm_nsg" {
     source_address_prefix      = "VirtualNetwork" # Zugriff nur aus Ihrem VNet
     destination_address_prefix = "*"
   }
+# Regel fuer Lets Encrypt ( offene , automatisierte Zertifizierungstelle) 
+  security_rule {
+    name                       = "AllowLetsEncryptHTTPChallenge"
+    priority                   = 150 
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+
 }
 
 # --- RESSOURCEN FÜR API-VM ---
