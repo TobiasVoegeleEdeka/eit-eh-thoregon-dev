@@ -1,26 +1,39 @@
----
 # /variables/mail.yaml
 
 # --- Server-Identität ---
-# Der offizielle, technische FQDN des Servers.
-# Dieser MUSS mit dem PTR-Eintrag (Reverse DNS) userer IP übereinstimmen.
-public_fqdn: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+# Der offizielle, technische FQDN Ihrer neuen Postfix-VM.
+# Dieser wurde von Terraform generiert.
+public_fqdn: "postfix-mail-vm.francecentral.cloudapp.azure.com"
 
-main_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
+# Die Hauptdomain des Servers, oft identisch mit public_fqdn.
+main_domain: "postfix-mail-vm.francecentral.cloudapp.azure.com"
+
 # --- E-Mail-/Marken-Identität ---
 # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
-# Dies muss eine Domain sein, die wir besitzen und für die wir DNS-Einträge (SPF) verwalten.
-sending_domain: "ansiblecontrolcenter-mail.francecentral.cloudapp.azure.com"
-postfix_internal_fqdn_for_generic_map: "AnsibleControlCenter.iux2jl1fzdbepmzoucqckqdd3g.parx.internal.cloudapp.net"
-# --- Benutzerkonfiguration ---
-# Der lokale Benutzer auf der VM
-mail_user: "ansiblemin"
+# Für den Anfang ist es am einfachsten, hier den public_fqdn zu verwenden.
+# Später können Sie dies auf eine eigene Domain ändern, für die Sie SPF/DKIM/DMARC kontrollieren.
+sending_domain: "postfix-mail-vm.francecentral.cloudapp.azure.com"
 
+# Der interne FQDN oder Hostname der Postfix-VM, der für die generic map verwendet wird.
+# {{ ansible_facts.fqdn }} im Template selbst ist oft die beste dynamische Lösung.
+# Wenn Sie es hier definieren wollen, loggen Sie sich auf der Postfix-VM ein
+# und führen Sie `hostname -f` aus, um den genauen Wert zu erhalten.
+# Beispielhafter Platzhalter, basierend auf dem VM-Namen:
+postfix_internal_fqdn_for_generic_map: "postfix-mail-vm.internal.cloudapp.net" # BITTE PRÜFEN & ANPASSEN
+
+# --- Benutzerkonfiguration ---
+# Der primäre administrative Benutzer auf der Postfix-VM,
+# der auch System-Mails senden könnte (z.B. cron jobs).
+mail_user: "azureadmin"
+
+# Ihre E-Mail-Adresse für die Let's Encrypt Registrierung.
 admin_email: "tobias.voegele@edeka.de"
 
 # --- Absender-Umschreibungen ---
-# Sorgt dafür, dass System-Mails eine saubere Absenderadresse
-# mit Ihrer eigenen Domain erhalten.
+# Sorgt dafür, dass System-Mails (z.B. von root oder dem Admin-Benutzer)
+# eine saubere Absenderadresse mit Ihrer sending_domain erhalten.
 sender_canonical_mappings:
   - { key: 'root', value: 'noreply@{{ sending_domain }}' }
-  - { key: 'ansiblemin', value: 'admin@{{ sending_domain }}' }
+  - { key: 'azureadmin', value: 'admin@{{ sending_domain }}' } # Geändert von ansiblemin auf azureadmin
+  # Fügen Sie hier weitere Mappings hinzu, falls nötig:
+  # - { key: 'www-data', value: 'webmaster@{{ sending_domain }}' }
