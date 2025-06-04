@@ -1,0 +1,23 @@
+# postgres template
+
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    restart: always
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mysecretpassword # Dies sollte idealerweise als Ansible Vault Secret übergeben werden
+      - POSTGRES_DB=mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    # Dieser Block weist Docker an, ein "benanntes Volume" namens 'postgres_data' zu verwalten.
+    # Docker legt die Daten dann in einem geschützten Bereich auf der Host-VM ab (/var/lib/docker/volumes/...).
+    # Selbst wenn der Container gelöscht wird, bleiben die Daten in diesem Volume erhalten.
