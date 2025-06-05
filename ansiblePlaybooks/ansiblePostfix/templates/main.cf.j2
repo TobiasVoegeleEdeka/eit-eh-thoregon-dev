@@ -14,10 +14,10 @@ smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
 
 # TLS-Einstellungen für ausgehende Verbindungen (smtp client)
 smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-smtp_tls_security_level = encrypt  # Erzwingt TLS für ausgehende Mails
-smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt # Pfad zu den CA-Zertifikaten
-smtp_tls_loglevel = 1 # Erhöht das TLS-Logging-Level
-smtp_address_preference = ipv4 # Bevorzugt IPv4 für ausgehende Verbindungen
+smtp_tls_security_level = encrypt
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_loglevel = 1
+smtp_address_preference = ipv4
 
 smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 
