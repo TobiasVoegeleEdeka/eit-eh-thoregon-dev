@@ -12,16 +12,14 @@ mydomain = {{ main_domain }}
 
 # --- Address Rewriting ---
 masquerade_domains = $myhostname
-{# Optional: masquerade_exceptions = root #}
+
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
 smtp_generic_maps = hash:/etc/postfix/generic
 
 # --- Destination & Network Configuration ---
 mydestination = $myhostname, localhost.{{ main_domain }}, localhost, localhost.localdomain
 inet_interfaces = all
-{# Um nur IPv4 zu verwenden: inet_protocols = ipv4 #}
-{# Wenn Ihre API-VM (z.B. 10.50.1.5) über Port 25 ohne SMTP AUTH einliefern soll, fügen Sie ihre IP hier hinzu: #}
-{# mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.5/32 #}
+
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
 relayhost =
 
@@ -48,7 +46,7 @@ smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
 smtp_tls_ciphers = high
 smtp_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES
 
-{# Für detailliertes Debugging eingehender TLS-Verbindungen. Später auf 1 oder 0 reduzieren. #}
+
 smtpd_tls_loglevel = 2
 smtp_tls_loglevel = 1
 
