@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls" // Für benutzerdefinierte TLS-Konfiguration
 	"encoding/json"
 	"fmt"
 	"log"
+	"net" // Für net.Dial
 	"net/http"
 	"net/smtp"
 	"os"
@@ -11,7 +13,14 @@ import (
 
 // Konfigurationswerte, die jetzt aus Umgebungsvariablen gelesen werden
 var (
-	postfixHost   string
+	// Der FQDN, der für TLS SNI und den EHLO-Befehl verwendet wird.
+	// Dieser sollte über die Umgebungsvariable POSTFIX_FQDN gesetzt werden
+	postfixTargetFQDN string
+
+	// Die IP-Adresse, zu der die TCP-Verbindung tatsächlich aufgebaut wird
+	// Dieser sollte über die Umgebungsvariable POSTFIX_CONNECT_IP gesetzt werden
+	postfixConnectIP string
+
 	postfixPort   string
 	defaultSender string
 	listenPort    string
@@ -19,18 +28,21 @@ var (
 
 func init() {
 	// Lese Konfiguration aus Umgebungsvariablen oder setze Standardwerte
-	postfixHost = getEnv("POSTFIX_HOST", "10.50.1.6")                                                        // Standard: Private IP Ihrer Postfix-VM
-	postfixPort = getEnv("POSTFIX_PORT", "25")                                                               // Standard: SMTP-Relay-Port
-	defaultSender = getEnv("DEFAULT_SENDER", "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com") // Passen Sie den Standardwert an Ihren FQDN an
-	listenPort = getEnv("LISTEN_PORT", "8080")                                                               // Port, auf dem die API lauscht
+	postfixTargetFQDN = getEnv("POSTFIX_FQDN", "postfix-mail-vm.francecentral.cloudapp.azure.com")
+	postfixConnectIP = getEnv("POSTFIX_CONNECT_IP", "10.50.1.6") // Standard: Private IP der Postfix-VM
+	postfixPort = getEnv("POSTFIX_PORT", "25")
+	defaultSender = getEnv("DEFAULT_SENDER", "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com") // an FQDN anpassen
+	listenPort = getEnv("LISTEN_PORT", "8080")
 }
 
 // Hilfsfunktion, um Umgebungsvariablen mit einem Standardwert zu lesen
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
-		return value
+		if value != "" {
+			return value
+		}
 	}
-	log.Printf("Umgebungsvariable %s nicht gesetzt, verwende Standardwert: %s", key, fallback)
+	log.Printf("Umgebungsvariable %s nicht gesetzt oder leer, verwende Standardwert: %s", key, fallback)
 	return fallback
 }
 
@@ -41,7 +53,96 @@ type EmailRequest struct {
 	Body    string `json:"body"`
 }
 
-// sendEmailHandler verarbeitet die API-Anfragen zum E-Mail-Versand
+// sendMailViaPostfix übernimmt die detaillierte SMTP-Logik
+func sendMailViaPostfix(to, subject, body string) error {
+	from := defaultSender
+	recipients := []string{to}
+
+	// Adresse für die TCP-Verbindung (IP-basiert für internes Routing)
+	smtpConnectAddr := fmt.Sprintf("%s:%s", postfixConnectIP, postfixPort)
+
+	// Verbindung aufbauen ZUERST OHNE TLS
+	conn, err := net.Dial("tcp", smtpConnectAddr)
+	if err != nil {
+		return fmt.Errorf("failed to dial TCP to %s: %w", smtpConnectAddr, err)
+	}
+	// `defer conn.Close()` wird vom smtp.NewClient übernommen bzw. muss nach Fehlern von NewClient explizit erfolgen
+
+	// SMTP-Client über die bestehende Verbindung erstellen
+	// Wichtig: Hier den FQDN für EHLO etc. verwenden, den der Server erwartet
+	c, err := smtp.NewClient(conn, postfixTargetFQDN)
+	if err != nil {
+		conn.Close() // Schließen, wenn NewClient fehlschlägt
+		return fmt.Errorf("failed to create SMTP client with target host %s: %w", postfixTargetFQDN, err)
+	}
+	// `defer c.Quit()` stellt sicher, dass QUIT am Ende gesendet wird (oder bei Panic)
+
+	// TLS-Konfiguration für STARTTLS
+	tlsConfig := &tls.Config{
+		ServerName:         postfixTargetFQDN, // Dieser Name wird für SNI verwendet und (wenn InsecureSkipVerify=false) für die Zertifikatsvalidierung
+		InsecureSkipVerify: true,              // Zertifikatsprüfung clientseitig überspringen
+	}
+
+	// STARTTLS initiieren, falls vom Server angeboten
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err = c.StartTLS(tlsConfig); err != nil {
+			c.Close() // Verbindung schließen bei TLS-Fehler
+			return fmt.Errorf("failed to start TLS with %s (target FQDN %s, connect IP %s): %w", smtpConnectAddr, postfixTargetFQDN, postfixConnectIP, err)
+		}
+	} else {
+		log.Println("Warning: STARTTLS not offered by server. Sending unencrypted is not recommended.")
+
+		// return fmt.Errorf("STARTTLS not offered by server %s", smtpConnectAddr)
+	}
+
+	// Sofern Postfix auf Port 25 für interne Relays Authentifizierung erfordert,
+	// müsste hier c.Auth(auth) aufgerufen werden
+
+	// Absender setzen
+	if err = c.Mail(from); err != nil {
+		c.Quit()
+		return fmt.Errorf("failed to set mail from (%s): %w", from, err)
+	}
+
+	// Empfänger setzen
+	for _, rcpt := range recipients {
+		if err = c.Rcpt(rcpt); err != nil {
+			c.Quit()
+			return fmt.Errorf("failed to set rcpt to %s: %w", rcpt, err)
+		}
+	}
+
+	// E-Mail-Daten senden
+	wc, err := c.Data()
+	if err != nil {
+		c.Quit()
+		return fmt.Errorf("failed to get data writer: %w", err)
+	}
+
+	message := fmt.Sprintf("To: %s\r\n"+
+		"From: %s\r\n"+
+		"Subject: %s\r\n"+
+		"Content-Type: text/plain; charset=UTF-8\r\n"+
+		"\r\n"+
+		"%s\r\n", to, from, subject, body)
+
+	_, err = fmt.Fprint(wc, message)
+	if err != nil {
+		wc.Close() // Versuche, den Writer zu schließen
+		c.Quit()
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	err = wc.Close()
+	if err != nil {
+		c.Quit()
+		return fmt.Errorf("failed to close data writer: %w", err)
+	}
+
+	// Verbindung sauber beenden
+	return c.Quit()
+}
+
 func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -61,24 +162,10 @@ func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := []byte(fmt.Sprintf("To: %s\r\n"+
-		"From: %s\r\n"+
-		"Subject: %s\r\n"+
-		"Content-Type: text/plain; charset=UTF-8\r\n"+
-		"\r\n"+
-		"%s\r\n", req.To, defaultSender, req.Subject, req.Body))
-
-	smtpAddr := fmt.Sprintf("%s:%s", postfixHost, postfixPort)
-
-	// Beachten Sie: Für die TLS-Problematik mit dem IP-SAN Fehler
-	// hatten wir eine komplexere SMTP-Client-Implementierung.
-	// Dieser Code verwendet weiterhin das einfache smtp.SendMail.
-	// Wenn der TLS-Fehler wieder auftritt, muss die erweiterte Implementierung
-	// mit custom tls.Config und InsecureSkipVerify hier wieder rein.
-	err := smtp.SendMail(smtpAddr, nil, defaultSender, []string{req.To}, message)
+	err := sendMailViaPostfix(req.To, req.Subject, req.Body)
 	if err != nil {
 		log.Printf("Error sending email to %s: %v", req.To, err)
-		http.Error(w, fmt.Sprintf("Failed to send email: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to send email. Check server logs. Internal error: %v", err), http.StatusInternalServerError)
 		return
 	}
 
