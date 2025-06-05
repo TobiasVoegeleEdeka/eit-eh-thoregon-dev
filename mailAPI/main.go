@@ -14,11 +14,11 @@ import (
 // Konfigurationswerte, die jetzt aus Umgebungsvariablen gelesen werden
 var (
 	// Der FQDN, der für TLS SNI und den EHLO-Befehl verwendet wird.
-	// Dieser sollte über die Umgebungsvariable POSTFIX_FQDN gesetzt werden.
+	// Dieser sollte über die Umgebungsvariable POSTFIX_FQDN gesetzt werden
 	postfixTargetFQDN string
 
-	// Die IP-Adresse, zu der die TCP-Verbindung tatsächlich aufgebaut wird.
-	// Dieser sollte über die Umgebungsvariable POSTFIX_CONNECT_IP gesetzt werden.
+	// Die IP-Adresse, zu der die TCP-Verbindung tatsächlich aufgebaut wird
+	// Dieser sollte über die Umgebungsvariable POSTFIX_CONNECT_IP gesetzt werden
 	postfixConnectIP string
 
 	postfixPort   string
@@ -29,9 +29,9 @@ var (
 func init() {
 	// Lese Konfiguration aus Umgebungsvariablen oder setze Standardwerte
 	postfixTargetFQDN = getEnv("POSTFIX_FQDN", "postfix-mail-vm.francecentral.cloudapp.azure.com")
-	postfixConnectIP = getEnv("POSTFIX_CONNECT_IP", "10.50.1.6") // Standard: Private IP Ihrer Postfix-VM
+	postfixConnectIP = getEnv("POSTFIX_CONNECT_IP", "10.50.1.6") // Standard: Private IP der Postfix-VM
 	postfixPort = getEnv("POSTFIX_PORT", "25")
-	defaultSender = getEnv("DEFAULT_SENDER", "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com") // Passen Sie den Standard an Ihren FQDN an
+	defaultSender = getEnv("DEFAULT_SENDER", "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com") // an FQDN anpassen
 	listenPort = getEnv("LISTEN_PORT", "8080")
 }
 
@@ -66,22 +66,21 @@ func sendMailViaPostfix(to, subject, body string) error {
 	if err != nil {
 		return fmt.Errorf("failed to dial TCP to %s: %w", smtpConnectAddr, err)
 	}
-	// `defer conn.Close()` wird vom smtp.NewClient übernommen bzw. muss nach Fehlern von NewClient explizit erfolgen.
+	// `defer conn.Close()` wird vom smtp.NewClient übernommen bzw. muss nach Fehlern von NewClient explizit erfolgen
 
-	// SMTP-Client über die bestehende Verbindung erstellen.
-	// Wichtig: Hier den FQDN für EHLO etc. verwenden, den der Server erwartet.
+	// SMTP-Client über die bestehende Verbindung erstellen
+	// Wichtig: Hier den FQDN für EHLO etc. verwenden, den der Server erwartet
 	c, err := smtp.NewClient(conn, postfixTargetFQDN)
 	if err != nil {
 		conn.Close() // Schließen, wenn NewClient fehlschlägt
 		return fmt.Errorf("failed to create SMTP client with target host %s: %w", postfixTargetFQDN, err)
 	}
 	// `defer c.Quit()` stellt sicher, dass QUIT am Ende gesendet wird (oder bei Panic)
-	// Es ist besser, c.Quit() explizit aufzurufen und den Fehler zu behandeln.
 
 	// TLS-Konfiguration für STARTTLS
 	tlsConfig := &tls.Config{
-		ServerName:         postfixTargetFQDN, // Dieser Name wird für SNI verwendet und (wenn InsecureSkipVerify=false) für die Zertifikatsvalidierung.
-		InsecureSkipVerify: true,              // Zertifikatsprüfung clientseitig überspringen.
+		ServerName:         postfixTargetFQDN, // Dieser Name wird für SNI verwendet und (wenn InsecureSkipVerify=false) für die Zertifikatsvalidierung
+		InsecureSkipVerify: true,              // Zertifikatsprüfung clientseitig überspringen
 	}
 
 	// STARTTLS initiieren, falls vom Server angeboten
@@ -92,12 +91,12 @@ func sendMailViaPostfix(to, subject, body string) error {
 		}
 	} else {
 		log.Println("Warning: STARTTLS not offered by server. Sending unencrypted is not recommended.")
-		// Hier könnten Sie entscheiden, ob Sie einen Fehler werfen, da verschlüsselte Übertragung erwartet wird.
+
 		// return fmt.Errorf("STARTTLS not offered by server %s", smtpConnectAddr)
 	}
 
-	// HINWEIS: Wenn Ihr Postfix auf Port 25 für interne Relays Authentifizierung erfordert,
-	// müsste hier c.Auth(auth) aufgerufen werden.
+	// Sofern Postfix auf Port 25 für interne Relays Authentifizierung erfordert,
+	// müsste hier c.Auth(auth) aufgerufen werden
 
 	// Absender setzen
 	if err = c.Mail(from); err != nil {
