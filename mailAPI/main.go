@@ -9,17 +9,17 @@ import (
 	"os"
 )
 
-// Konfiguration - In einer echten Anwendung würden Sie dies über Umgebungsvariablen oder Konfigurationsdateien laden.
+// Konfiguration - muss noch in env gepackt werden
 const (
-	// Private IP-Adresse Ihrer Postfix-VM (aus Ihrer Liste: 10.50.1.6)
+	// Private IP-Adresse der Postfix-VM
 	// Diese sollte für die Kommunikation innerhalb Ihres VNet verwendet werden.
 	postfixHost = "10.50.1.6"
 	postfixPort = "25" // Standard-SMTP-Port für Relay/interne Einlieferung ohne Auth
 
 	// Die Absenderadresse. Diese sollte zu einer Domain gehören,
-	// die Ihr Postfix-Server verarbeiten und korrekt umschreiben kann
+	// die der Postfix-Server verarbeiten und korrekt umschreiben kann
 	// (z.B. über sender_canonical_maps oder generic_maps in Postfix).
-	// Passen Sie dies an Ihren FQDN oder Ihre 'sending_domain' an.
+	// anpassen an FQDN oder  'sending_domain' .
 	defaultSender = "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com"
 )
 
