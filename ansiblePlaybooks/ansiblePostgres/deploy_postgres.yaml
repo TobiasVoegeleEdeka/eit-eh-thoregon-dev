@@ -1,0 +1,77 @@
+# deploy_postgres.yml
+
+---
+- name: Deploy PostgreSQL in a Docker container
+  hosts: database_servers
+  become: yes 
+
+  tasks:
+    # --- 1. System-Voraussetzungen installieren ---
+    - name: Install prerequisite packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip  # Hinzugefügt, um sicherzustellen, dass pip verfügbar ist
+        state: present
+        update_cache: yes
+
+    # --- 2. Docker Engine installieren ---
+    - name: Create directory for Docker's GPG key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add Docker's official GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+        force: yes
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: >
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] 
+          https://download.docker.com/linux/ubuntu 
+          {{ ansible_distribution_release }} stable
+        state: present
+        filename: docker
+
+    - name: Install Docker Engine and Docker Compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin 
+        state: present
+        update_cache: yes
+
+    # --- 3. Python-Abhängigkeiten für Ansible Docker-Module installieren ---
+    - name: Install Docker SDK for Python (required for Ansible modules)
+      ansible.builtin.pip:
+        name: docker
+        state: present
+
+    # --- 4. Docker Compose Projekt aufsetzen und starten ---
+    - name: Create a directory for the postgres service
+      ansible.builtin.file:
+        path: /opt/postgres
+        state: directory
+        mode: '0755'
+
+    - name: Copy Docker Compose file to the remote host
+      ansible.builtin.template:
+        src: templates/docker-compose-postgres.yml.j2
+        dest: /opt/postgres/docker-compose.yml
+        mode: '0644'
+
+    - name: Start the postgres container using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: /opt/postgres
+        state: present # Startet die Services, wenn sie nicht laufen. Baut Images bei Bedarf.

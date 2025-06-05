@@ -1,0 +1,7 @@
+# inventory
+
+[database_servers]
+postgres_vm ansible_host=52.143.180.149
+
+[database_servers:vars]
+ansible_user=azureadmin

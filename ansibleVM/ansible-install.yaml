@@ -20,6 +20,7 @@ packages:
   - git
   - python3-pip 
   - python3-venv
+  - software-properties-common # Hinzugefügt, um 'add-apt-repository' sicherzustellen
 
 # Root-Befehle
 runcmd:
@@ -51,7 +52,6 @@ runcmd:
     # Optional: Kurzer Check, ob das Home-Verzeichnis existiert (sollte es, wenn der User korrekt erstellt wurde)
     if [ ! -d "/home/$TARGET_USER_NAME" ]; then
         echo "WARNING: Home directory /home/$TARGET_USER_NAME for user '$TARGET_USER_NAME' not found! This could indicate an issue with user provisioning by Azure or an incorrect TARGET_USER_NAME." >> $LOG_FILE
-        # Hier könnte man ggf. log_and_exit aufrufen, wenn das kritisch ist, aber Terraform sollte das Home-Dir anlegen.
     fi
 
     echo "INFO: Updating package lists (apt-get update)..." >> $LOG_FILE
@@ -80,8 +80,19 @@ runcmd:
       echo "WARNING: systemctl not found. Cannot manage Docker service state." >> $LOG_FILE
     fi
 
-    echo "INFO: Installing Ansible..." >> $LOG_FILE
-    apt-get install -y ansible >> $LOG_FILE 2>&1 || log_and_exit "InstallAnsible"
+    # --- HINZUGEFÜGTER BLOCK FÜR MODERNE ANSIBLE-VERSION ---
+    echo "INFO: Adding official Ansible PPA to get a modern version..." >> $LOG_FILE
+    # Fügt das offizielle Ansible PPA hinzu. Das '--update' Flag aktualisiert die Paketliste direkt.
+    add-apt-repository --yes --update ppa:ansible/ansible >> $LOG_FILE 2>&1 || log_and_exit "AddAnsiblePPA"
+    # --- ENDE DES HINZUGEFÜGTEN BLOCKS ---
+
+    echo "INFO: Installing Ansible from PPA..." >> $LOG_FILE
+    apt-get install -y ansible >> $LOG_FILE 2>&1 || log_and_exit "InstallAnsibleFromPPA"
+
+    echo "INFO: Installing Ansible Docker community collection for user $TARGET_USER_NAME..." >> $LOG_FILE
+    # Installiert die Ansible-Sammlung für Docker, damit Module wie 'community.docker.docker_compose_v2' verwendet werden können.
+    # Wir führen dies als der Zielbenutzer aus, um die Sammlung in seinem Home-Verzeichnis zu installieren.
+    sudo -u "$TARGET_USER_NAME" ansible-galaxy collection install community.docker >> $LOG_FILE 2>&1 || echo "WARNING: Failed to install Ansible Docker collection." >> $LOG_FILE
 
     echo "INFO: Terraform installation is currently skipped." >> $LOG_FILE
 

@@ -1,0 +1,16 @@
+# docker-compose.yml
+services:
+  mail-api:
+    image: mailapi-image:latest 
+    container_name: mailapi-container
+    restart: unless-stopped
+    ports:
+      - "80:8080" # Mappt Host-Port 80 auf Container-Port (definiert durch LISTEN_PORT)
+    environment:
+      - LISTEN_PORT=8080
+      - POSTFIX_HOST=10.50.1.6 # Private IP Ihrer Postfix-VM
+      - POSTFIX_PORT=25
+      - DEFAULT_SENDER=api-service@postfix-mail-vm.francecentral.cloudapp.azure.com 
+      - DATABASE_URL=postgres://myuser:mysecretpassword@10.50.1.4:5432/mydb # db connection fuer spaeter
+    extra_hosts:
+      - "postfix-mail-vm.francecentral.cloudapp.azure.com:10.50.1.6"
