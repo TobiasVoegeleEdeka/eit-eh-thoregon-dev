@@ -8,7 +8,7 @@
 
 ### Load Balancer bauen oder einkaufen, Message Broker als Cache fuer die Emails im Falle das Postfix VM down geht
 
-#### SPAM Filter API fuer Postgres Docker Image bauen, separater Container eventuell in die MAIL Api integrieren, nur Email Adressen die aus den Anwendungen kamen speichern und dann nach lookup Eingang zulassen , was nicht drin ist wird abgewiesen
+#### SPAM Filter Service fuer Postgres Docker Image bauen, separater Container eventuell in die MAIL Api integrieren, nur Email Adressen die aus den Anwendungen kamen speichern und dann nach lookup Eingang zulassen , was nicht drin ist wird abgewiesen
 
 ##### Mail API , postfix commands als Go package abbilden ( reuseability, Lesbarkeit), Ansible Playbook fuer die API schreiben
 
