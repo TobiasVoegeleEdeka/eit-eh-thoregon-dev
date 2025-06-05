@@ -9,19 +9,30 @@ import (
 	"os"
 )
 
-// Konfiguration - muss noch in env gepackt werden
-const (
-	// Private IP-Adresse der Postfix-VM
-	// Diese sollte für die Kommunikation innerhalb Ihres VNet verwendet werden.
-	postfixHost = "10.50.1.6"
-	postfixPort = "25" // Standard-SMTP-Port für Relay/interne Einlieferung ohne Auth
-
-	// Die Absenderadresse. Diese sollte zu einer Domain gehören,
-	// die der Postfix-Server verarbeiten und korrekt umschreiben kann
-	// (z.B. über sender_canonical_maps oder generic_maps in Postfix).
-	// anpassen an FQDN oder  'sending_domain' .
-	defaultSender = "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com"
+// Konfigurationswerte, die jetzt aus Umgebungsvariablen gelesen werden
+var (
+	postfixHost   string
+	postfixPort   string
+	defaultSender string
+	listenPort    string
 )
+
+func init() {
+	// Lese Konfiguration aus Umgebungsvariablen oder setze Standardwerte
+	postfixHost = getEnv("POSTFIX_HOST", "10.50.1.6")                                                        // Standard: Private IP Ihrer Postfix-VM
+	postfixPort = getEnv("POSTFIX_PORT", "25")                                                               // Standard: SMTP-Relay-Port
+	defaultSender = getEnv("DEFAULT_SENDER", "api-service@postfix-mail-vm.francecentral.cloudapp.azure.com") // Passen Sie den Standardwert an Ihren FQDN an
+	listenPort = getEnv("LISTEN_PORT", "8080")                                                               // Port, auf dem die API lauscht
+}
+
+// Hilfsfunktion, um Umgebungsvariablen mit einem Standardwert zu lesen
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	log.Printf("Umgebungsvariable %s nicht gesetzt, verwende Standardwert: %s", key, fallback)
+	return fallback
+}
 
 // EmailRequest Struktur für den JSON-Payload
 type EmailRequest struct {
@@ -50,18 +61,20 @@ func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// E-Mail-Nachricht im RFC 822 Format erstellen
-	// Wichtig: \r\n als Zeilenumbrüche verwenden!
 	message := []byte(fmt.Sprintf("To: %s\r\n"+
 		"From: %s\r\n"+
 		"Subject: %s\r\n"+
-		"Content-Type: text/plain; charset=UTF-8\r\n"+ // Explizit Content-Type setzen
+		"Content-Type: text/plain; charset=UTF-8\r\n"+
 		"\r\n"+
 		"%s\r\n", req.To, defaultSender, req.Subject, req.Body))
 
-	// SMTP-Server-Adresse
 	smtpAddr := fmt.Sprintf("%s:%s", postfixHost, postfixPort)
 
+	// Beachten Sie: Für die TLS-Problematik mit dem IP-SAN Fehler
+	// hatten wir eine komplexere SMTP-Client-Implementierung.
+	// Dieser Code verwendet weiterhin das einfache smtp.SendMail.
+	// Wenn der TLS-Fehler wieder auftritt, muss die erweiterte Implementierung
+	// mit custom tls.Config und InsecureSkipVerify hier wieder rein.
 	err := smtp.SendMail(smtpAddr, nil, defaultSender, []string{req.To}, message)
 	if err != nil {
 		log.Printf("Error sending email to %s: %v", req.To, err)
@@ -78,13 +91,8 @@ func sendEmailHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/send-email", sendEmailHandler)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Standardport, falls nicht über Umgebungsvariable gesetzt
-	}
-
-	log.Printf("Starting API server on port %s...", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	log.Printf("Starting API server on port %s...", listenPort)
+	if err := http.ListenAndServe(":"+listenPort, nil); err != nil {
 		log.Fatalf("Could not start server: %s\n", err)
 	}
 }
