@@ -1,0 +1,21 @@
+# docker-compose.yaml auf der API-VM
+
+services:
+  mail-api:
+    image: mailapi-image:latest
+    container_name: mailapi-container
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    environment:
+      - PORT=8080
+      # Die folgenden Umgebungsvariablen sind für Flexibilität vorgesehen.
+     
+      - DATABASE_URL=postgres://myuser:mysecretpassword@10.50.1.4:5432/mydb
+      - POSTFIX_FQDN=postfix-mail-vm.francecentral.cloudapp.azure.com
+      - POSTFIX_PORT=25
+      - DEFAULT_SENDER=api-service@postfix-mail-vm.francecentral.cloudapp.azure.com
+    extra_hosts:
+      # Stellt sicher, dass der FQDN des Postfix-Servers innerhalb des Containers
+      # zur korrekten privaten IP aufgelöst wird.
+      - "postfix-mail-vm.francecentral.cloudapp.azure.com:10.50.1.6"
