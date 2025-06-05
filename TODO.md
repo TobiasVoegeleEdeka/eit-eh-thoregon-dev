@@ -1,5 +1,7 @@
 # TODO LIST
 
+## Ansible oder Azure Keyvault fuer smtp daten , ssh keys
+
 ## SPF Record , PTR Record ( muss auf den Load Balancer zeigen)
 
 ## Die ganze Infra nur noch per Bastion(Jump Host zugaenglich machen)
