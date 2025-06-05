@@ -6,84 +6,53 @@
 # ==========================================================================
 
 # --- General & Identity Configuration ---
-# Der öffentliche, vollqualifizierte Domainname (FQDN) dieses Servers.
-# Wird durch die Variable 'public_fqdn' aus Ihrer mail.yaml gefüllt.
 myhostname = {{ public_fqdn }}
-
-# Die Domain, die für E-Mails verwendet wird, die von lokalen Benutzern ohne Domainanteil gesendet werden.
-# /etc/mailname wird durch Ansible mit {{ public_fqdn }} befüllt.
 myorigin = /etc/mailname
-
-# Die Hauptdomain des Servers. Wird oft von myhostname abgeleitet, kann aber explizit gesetzt werden.
-# Wird durch die Variable 'main_domain' aus Ihrer mail.yaml gefüllt.
 mydomain = {{ main_domain }}
 
 # --- Address Rewriting ---
-# Stellt sicher, dass lokale Benutzer als user@myhostname (also user@{{ public_fqdn }}) senden.
 masquerade_domains = $myhostname
-# Optional: Ausnahmen für das Masquerading, z.B. wenn root-Mails nicht umgeschrieben werden sollen
-# masquerade_exceptions = root
-
-# Mappings für spezifische Absenderumschreibungen.
+{# Optional: masquerade_exceptions = root #}
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
 smtp_generic_maps = hash:/etc/postfix/generic
 
 # --- Destination & Network Configuration ---
-# Domains, für die dieser Server E-Mails als Endziel annimmt.
 mydestination = $myhostname, localhost.{{ main_domain }}, localhost, localhost.localdomain
-
-# Lausche auf allen Netzwerk-Interfaces.
 inet_interfaces = all
-# Wenn Sie nur IPv4 verwenden möchten (empfohlen, wenn IPv6 nicht vollständig konfiguriert ist):
-# inet_protocols = ipv4
-
-# Vertrauenswürdige Netzwerke, die Mail ohne weitere Authentifizierung weiterleiten dürfen.
-# Nur der Server selbst und das Loopback-Interface. Ihre API-VM (im VNet) sollte
-# über Port 587 (Submission) mit Authentifizierung oder spezifischen relay_restrictions einliefern.
-# Oder Sie fügen die IP Ihrer API-VM explizit hinzu, wenn Port 25 für internes Relay ohne Auth genutzt wird.
+{# Um nur IPv4 zu verwenden: inet_protocols = ipv4 #}
+{# Wenn Ihre API-VM (z.B. 10.50.1.5) über Port 25 ohne SMTP AUTH einliefern soll, fügen Sie ihre IP hier hinzu: #}
+{# mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.5/32 #}
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
-# Wenn Ihre API-VM (10.50.1.5) über Port 25 ohne SMTP AUTH einliefern soll:
-# mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.5/32
-
-# Nicht über einen anderen Server weiterleiten (wenn dieser Server der primäre MTA ist).
 relayhost =
 
 # --- Security & Recipient Restrictions ---
-# Verhindert, dass der Server ein offenes Relay ist.
 smtpd_recipient_restrictions =
     permit_mynetworks
     permit_sasl_authenticated
     reject_unauth_destination
 
 # --- TLS Configuration ---
-# Pfade zu den Let's Encrypt Zertifikaten.
 smtpd_tls_cert_file = /etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem
 smtpd_tls_key_file = /etc/letsencrypt/live/{{ public_fqdn }}/privkey.pem
-
-# TLS für eingehende Verbindungen (smtpd)
 smtpd_use_tls = yes
-smtpd_tls_security_level = encrypt # Erzwingt TLS für eingehende Verbindungen
+smtpd_tls_security_level = encrypt
 
-# Moderne TLS-Protokolle und Ciphers für eingehende Verbindungen (smtpd)
-smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 # Erlaubt nur TLSv1.2 und TLSv1.3
-smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 # Stellt sicher, dass keine alten Protokolle verwendet werden
-smtpd_tls_ciphers = high # Verwendet nur "high" strength Ciphers
-smtpd_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES # Schließt explizit unsichere Ciphers aus
-smtpd_eecdh_grade = strong # Verwendet starke Parameter für Perfect Forward Secrecy
+smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_ciphers = high
+smtpd_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES
+smtpd_eecdh_grade = strong
 
-# TLS für ausgehende Verbindungen (smtp Client)
-smtp_tls_security_level = may # Versucht TLS, sendet aber auch unverschlüsselt, wenn die Gegenseite kein TLS kann.
-                              # Für strikte Sicherheit 'encrypt' verwenden, aber das kann Zustellprobleme verursachen.
-smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt # Wichtig für die Verifizierung von Zertifikaten anderer Server
-smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 # Auch für ausgehend moderne Protokolle bevorzugen
+smtp_tls_security_level = encrypt {# Für maximale Sicherheit bei ausgehenden Verbindungen. 'may' wäre kompatibler mit älteren Servern. #}
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
 smtp_tls_ciphers = high
 smtp_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES
 
-# Logging für TLS
-smtpd_tls_loglevel = 2 # Detailliertes Logging für eingehende TLS-Verbindungen (für Fehlersuche)
-smtp_tls_loglevel = 1  # Standard-Logging für ausgehende TLS-Verbindungen
+{# Für detailliertes Debugging eingehender TLS-Verbindungen. Später auf 1 oder 0 reduzieren. #}
+smtpd_tls_loglevel = 2
+smtp_tls_loglevel = 1
 
-# Session Caching
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
 smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
 
@@ -97,4 +66,3 @@ biff = no
 append_dot_mydomain = no
 readme_directory = no
 compatibility_level = 3.6
-# smtputf8_enable = yes # Ist ab compatibility_level = 3.6 standardmäßig aktiviert
