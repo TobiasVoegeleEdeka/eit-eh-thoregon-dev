@@ -18,6 +18,16 @@
 
 ##### Bounce Management implementieren , was passiert bei welchen Fehler Codes , Log ja/nein
 
-#####  
+#####  Retry Routine in die API fuer Mailzustellung und dann Fehler abfangen und melden und Fehler passend loggen 
 
 ###### Eventuell Logs speichern in der DB aber nicht alles , DATADOG Logging 
+
+
+
+#### alles in  eine VM 
+
+##### Aufbewahrungsfristen verschiedene Typ  im weekley diskutieren , Bounce Management implementieren , was passiert bei welchen Fehler Codes , Log ja/nein
+
+#### Container Sizing erhoehen B1+
+
+#### Message Broker 
