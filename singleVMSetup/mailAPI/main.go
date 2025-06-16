@@ -31,7 +31,7 @@ func init() {
 	postfixTargetFQDN = getEnv("POSTFIX_FQDN", "mail-service-vm.francecentral.cloudapp.azure.com")
 	postfixConnectIP = getEnv("POSTFIX_CONNECT_IP", "10.50.1.7") // Standard: Private IP der Postfix-VM
 	postfixPort = getEnv("POSTFIX_PORT", "25")
-	defaultSender = getEnv("DEFAULT_SENDER", "api-service@mail-service-vm.francecentral.cloudapp.azure.com") // an FQDN anpassen
+	defaultSender = getEnv("DEFAULT_SENDER", "mail-service@mail-service-vm.francecentral.cloudapp.azure.com") // an FQDN anpassen
 	listenPort = getEnv("LISTEN_PORT", "8080")
 }
 
