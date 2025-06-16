@@ -3,7 +3,7 @@
 # ===============================================
 
 [mailserver]
-postfix_vm ansible_host=4.233.68.218
+postfix_vm ansible_host=4.251.108.32
 
 [mailserver:vars]
 ansible_user=azureadmin
