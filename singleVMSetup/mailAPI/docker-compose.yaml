@@ -4,7 +4,7 @@ services:
   # Go API service
   go-api:
     build:
-      context: ./mailAPI/api  # Points to the 'api' directory to build the Docker image
+      context: ./api  # Points to the 'api' directory to build the Docker image
     container_name: go-api
     restart: unless-stopped
     environment:
