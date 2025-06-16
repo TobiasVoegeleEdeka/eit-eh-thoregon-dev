@@ -3,23 +3,23 @@
 # --- Server-Identität ---
 # Der offizielle, technische FQDN Ihrer neuen Postfix-VM.
 # Dieser wurde von Terraform generiert.
-public_fqdn: "postfix-mail-vm.francecentral.cloudapp.azure.com"
+public_fqdn: "mail-service-vm.francecentral.cloudapp.azure.com"
 
 # Die Hauptdomain des Servers, oft identisch mit public_fqdn.
-main_domain: "postfix-mail-vm.francecentral.cloudapp.azure.com"
+main_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
 
 # --- E-Mail-/Marken-Identität ---
 # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
 # Für den Anfang ist es am einfachsten, hier den public_fqdn zu verwenden.
 # Später können Sie dies auf eine eigene Domain ändern, für die Sie SPF/DKIM/DMARC kontrollieren.
-sending_domain: "postfix-mail-vm.francecentral.cloudapp.azure.com"
+sending_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
 
 # Der interne FQDN oder Hostname der Postfix-VM, der für die generic map verwendet wird.
 # {{ ansible_facts.fqdn }} im Template selbst ist oft die beste dynamische Lösung.
 # Wenn Sie es hier definieren wollen, loggen Sie sich auf der Postfix-VM ein
 # und führen Sie `hostname -f` aus, um den genauen Wert zu erhalten.
 # Beispielhafter Platzhalter, basierend auf dem VM-Namen:
-postfix_internal_fqdn_for_generic_map: "postfix-mail-vm.internal.cloudapp.net" # BITTE PRÜFEN & ANPASSEN
+postfix_internal_fqdn_for_generic_map: "mail-service-vm.internal.cloudapp.net" # BITTE PRÜFEN & ANPASSEN
 
 # --- Benutzerkonfiguration ---
 # Der primäre administrative Benutzer auf der Postfix-VM,
