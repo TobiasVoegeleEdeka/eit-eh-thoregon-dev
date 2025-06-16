@@ -1,0 +1,27 @@
+#cloud-config
+# Aktualisiert das System und installiert Git, Docker und Docker Compose.
+
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - git
+
+runcmd:
+  # Docker GPG-Schlüssel und Repository hinzufügen
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - |
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null
+  # Paketquellen erneut aktualisieren
+  - apt-get update -y
+  # Docker Engine, CLI und Docker Compose Plugin installieren
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  # Den Admin-Benutzer zur Docker-Gruppe hinzufügen
+  - usermod -aG docker azureadmin # Ersetzen Sie 'azureadmin' falls Sie einen anderen admin_username verwenden
