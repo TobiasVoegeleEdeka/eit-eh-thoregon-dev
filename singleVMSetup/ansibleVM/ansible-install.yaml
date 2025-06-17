@@ -1,0 +1,110 @@
+#cloud-config
+# Installiert Ansible, Go, Docker, Java, Git und erstellt Ordner.
+# Terraform-Installation wird weiterhin übersprungen.
+
+
+# Systempakete aktualisieren
+package_update: true
+package_upgrade: true
+
+# Basispakete
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - wget
+  - unzip
+  - build-essential
+  - git
+  - python3-pip 
+  - python3-venv
+  - software-properties-common # Hinzugefügt, um 'add-apt-repository' sicherzustellen
+
+# Root-Befehle
+runcmd:
+  - |
+    #!/bin/bash
+    set -e 
+    export DEBIAN_FRONTEND=noninteractive
+    LOG_FILE="/var/log/cloud_init_install.log"
+    echo "====== Starting Cloud-Init: Simplified Pure Installation (Azure VM) ======" > $LOG_FILE
+
+    # Variablen
+    TARGET_USER_NAME="ansiblemin" # WICHTIG: Dieser Benutzer wird von Terraform/Azure als 'admin_username' erstellt!
+    JAVA_VERSION_PACKAGE="openjdk-17-jdk"
+    ANSIBLE_PROJECTS_DIR="/home/$TARGET_USER_NAME/ansibleprojects"
+    DOCKER_IMAGES_DIR="/home/$TARGET_USER_NAME/dockerimages"
+    APIS_DIR="/home/$TARGET_USER_NAME/apis"
+
+    log_and_exit() {
+      echo "AZURE_VM_ERROR: Command failed at step: $1 (see $LOG_FILE and /var/log/cloud-init-output.log)" >> $LOG_FILE
+      exit 1
+    }
+
+    # Benutzererstellung wurde entfernt.
+    # Es wird davon ausgegangen, dass der Benutzer '$TARGET_USER_NAME' 
+    # (entsprechend 'var.admin_username' in Terraform) bereits von Azure beim
+    # Provisionieren der VM erstellt wurde.
+    echo "INFO: Proceeding with installations. User '$TARGET_USER_NAME' is expected to exist." >> $LOG_FILE
+    
+    # Optional: Kurzer Check, ob das Home-Verzeichnis existiert (sollte es, wenn der User korrekt erstellt wurde)
+    if [ ! -d "/home/$TARGET_USER_NAME" ]; then
+        echo "WARNING: Home directory /home/$TARGET_USER_NAME for user '$TARGET_USER_NAME' not found! This could indicate an issue with user provisioning by Azure or an incorrect TARGET_USER_NAME." >> $LOG_FILE
+    fi
+
+    echo "INFO: Updating package lists (apt-get update)..." >> $LOG_FILE
+    apt-get update -y >> $LOG_FILE 2>&1 || log_and_exit "AptUpdate"
+
+    echo "INFO: Ensuring Git is installed..." >> $LOG_FILE
+    apt-get install -y git >> $LOG_FILE 2>&1 || log_and_exit "InstallGit"
+
+    echo "INFO: Installing Java ($JAVA_VERSION_PACKAGE)..." >> $LOG_FILE
+    apt-get install -y "$JAVA_VERSION_PACKAGE" >> $LOG_FILE 2>&1 || log_and_exit "InstallJava"
+
+    echo "INFO: Installing Go (golang-go)..." >> $LOG_FILE
+    apt-get install -y golang-go >> $LOG_FILE 2>&1 || log_and_exit "InstallGo"
+
+    echo "INFO: Installing Docker (docker.io) and Docker Compose..." >> $LOG_FILE
+    apt-get install -y docker.io docker-compose >> $LOG_FILE 2>&1 || log_and_exit "InstallDocker"
+    
+    echo "INFO: Adding $TARGET_USER_NAME to docker group..." >> $LOG_FILE
+    usermod -aG docker "$TARGET_USER_NAME" >> $LOG_FILE 2>&1 || echo "WARNING: Failed to add $TARGET_USER_NAME to docker group. User may need to re-login." >> $LOG_FILE
+    
+    if command -v systemctl &>/dev/null; then
+      echo "INFO: Enabling and starting Docker service..." >> $LOG_FILE
+      systemctl enable docker >> $LOG_FILE 2>&1 || echo "WARNING: Failed to enable Docker service." >> $LOG_FILE
+      systemctl start docker >> $LOG_FILE 2>&1 || echo "WARNING: Failed to start Docker service." >> $LOG_FILE
+    else
+      echo "WARNING: systemctl not found. Cannot manage Docker service state." >> $LOG_FILE
+    fi
+
+    # --- HINZUGEFÜGTER BLOCK FÜR MODERNE ANSIBLE-VERSION ---
+    echo "INFO: Adding official Ansible PPA to get a modern version..." >> $LOG_FILE
+    # Fügt das offizielle Ansible PPA hinzu. Das '--update' Flag aktualisiert die Paketliste direkt.
+    add-apt-repository --yes --update ppa:ansible/ansible >> $LOG_FILE 2>&1 || log_and_exit "AddAnsiblePPA"
+    # --- ENDE DES HINZUGEFÜGTEN BLOCKS ---
+
+    echo "INFO: Installing Ansible from PPA..." >> $LOG_FILE
+    apt-get install -y ansible >> $LOG_FILE 2>&1 || log_and_exit "InstallAnsibleFromPPA"
+
+    echo "INFO: Installing Ansible Docker community collection for user $TARGET_USER_NAME..." >> $LOG_FILE
+    # Installiert die Ansible-Sammlung für Docker, damit Module wie 'community.docker.docker_compose_v2' verwendet werden können.
+    # Wir führen dies als der Zielbenutzer aus, um die Sammlung in seinem Home-Verzeichnis zu installieren.
+    sudo -u "$TARGET_USER_NAME" ansible-galaxy collection install community.docker >> $LOG_FILE 2>&1 || echo "WARNING: Failed to install Ansible Docker collection." >> $LOG_FILE
+
+    echo "INFO: Terraform installation is currently skipped." >> $LOG_FILE
+
+    echo "INFO: Creating directories for $TARGET_USER_NAME..." >> $LOG_FILE
+    for dir_path in "$ANSIBLE_PROJECTS_DIR" "$DOCKER_IMAGES_DIR" "$APIS_DIR"; do
+      mkdir -p "$dir_path" >> $LOG_FILE 2>&1 || log_and_exit "CreateDirectory $dir_path"
+      echo "INFO: Directory $dir_path ensured." >> $LOG_FILE
+      chown "$TARGET_USER_NAME:$TARGET_USER_NAME" "$dir_path" >> $LOG_FILE 2>&1 || log_and_exit "ChownDirectory $dir_path"
+      chmod 0755 "$dir_path" >> $LOG_FILE 2>&1 || log_and_exit "ChmodDirectory $dir_path"
+      echo "INFO: Ownership and permissions set for $dir_path." >> $LOG_FILE
+    done
+
+    echo "====== Cloud-Init: Simplified Pure Installation Finished Successfully (Azure VM) ======" >> $LOG_FILE
+    echo "Summary: Git, Java, Go, Docker (docker.io), Ansible (apt) should be installed." >> $LOG_FILE
+    echo "Please check $LOG_FILE for details." >> $LOG_FILE
