@@ -1,12 +1,10 @@
 ---
-- name: Deploy PostgreSQL in a Docker container
+- name: Deploy PostgreSQL with Liquibase
   hosts: database_servers
   become: yes
-  # Vault-Datei einbinden
   vars_files:
     - ../ansibleVault/vault.yml
 
-  # Variablen für PostgreSQL-Credentials
   vars:
     db_name: "{{ vault_postgres_db_name }}"
     db_user: "{{ vault_postgres_user }}"
@@ -15,8 +13,8 @@
     postgres_port: "5432"
 
   tasks:
-    # --- 1. System-Voraussetzungen installieren ---
-    - name: Install prerequisite packages for Docker
+    # --- 1. Install Docker prerequisites ---
+    - name: Install prerequisite packages
       ansible.builtin.apt:
         name:
           - apt-transport-https
@@ -28,19 +26,19 @@
         state: present
         update_cache: yes
 
-    # --- 2. Docker Engine sauber installieren (Idempotent) ---
+    # --- 2. Docker Installation ---
     - name: Create directory for Docker's GPG key
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
 
-    - name: Remove old Docker GPG key if it exists
+    - name: Remove old Docker GPG key if exists
       ansible.builtin.file:
         path: /etc/apt/keyrings/docker.gpg
         state: absent
 
-    - name: Download Docker's official GPG key
+    - name: Download Docker's GPG key
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /tmp/docker.asc
@@ -53,7 +51,7 @@
       args:
         creates: /etc/apt/keyrings/docker.gpg
 
-    - name: Clean up temporary GPG key file
+    - name: Clean up temporary GPG key
       ansible.builtin.file:
         path: /tmp/docker.asc
         state: absent
@@ -67,7 +65,7 @@
         state: present
         filename: docker
 
-    - name: Install Docker Engine and Docker Compose plugin
+    - name: Install Docker components
       ansible.builtin.apt:
         name:
           - docker-ce
@@ -77,20 +75,34 @@
         state: present
         update_cache: yes
 
-    # --- 3. Python-Abhängigkeiten für Ansible Docker-Module installieren ---
+    # --- 3. Python dependencies ---
     - name: Install Docker SDK for Python
       ansible.builtin.pip:
         name: docker
         state: present
 
-    # --- 4. Docker Compose Projekt aufsetzen und starten ---
-    - name: Create a directory for the postgres service
+    # --- 4. Prepare PostgreSQL deployment ---
+    - name: Create postgres directory
       ansible.builtin.file:
         path: /opt/postgres
         state: directory
         mode: '0755'
 
-    - name: Ensure existing container is stopped and removed
+    - name: Create liquibase directory
+      ansible.builtin.file:
+        path: /opt/postgres/liquibase
+        state: directory
+        mode: '0755'
+
+    - name: Copy liquibase changelogs
+      ansible.builtin.copy:
+        src: files/liquibase/
+        dest: /opt/postgres/liquibase
+        mode: '0644'
+        recursive: yes
+
+    # --- 5. Clean up existing containers ---
+    - name: Remove existing container
       community.docker.docker_container:
         name: "{{ container_name }}"
         state: absent
@@ -98,19 +110,20 @@
         cleanup: yes
       ignore_errors: yes
 
-    - name: Ensure any existing docker-compose stack is down
+    - name: Ensure compose stack is down
       community.docker.docker_compose_v2:
         project_src: /opt/postgres
         state: absent
       ignore_errors: yes
 
-    - name: Copy Docker Compose file to the remote host
+    # --- 6. Deploy new stack ---
+    - name: Deploy docker-compose template
       ansible.builtin.template:
         src: templates/docker-compose-postgres.yml.j2
         dest: /opt/postgres/docker-compose.yml
         mode: '0644'
 
-    - name: Start the postgres container using Docker Compose
+    - name: Start PostgreSQL with Liquibase
       community.docker.docker_compose_v2:
         project_src: /opt/postgres
         state: present

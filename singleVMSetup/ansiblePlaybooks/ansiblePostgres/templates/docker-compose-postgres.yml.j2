@@ -1,18 +1,31 @@
 version: '3.8'
 
 services:
-  {{ container_name }}:
+  postgres-db:
     image: postgres:16-alpine
     container_name: {{ container_name }}
-    restart: always
     environment:
-      - POSTGRES_USER={{ db_user }}
-      - POSTGRES_PASSWORD={{ db_password }}
-      - POSTGRES_DB={{ db_name }}
+      POSTGRES_USER: {{ db_user }}
+      POSTGRES_PASSWORD: {{ db_password }}
+      POSTGRES_DB: {{ db_name }}
     ports:
-      - "{{ postgres_port }}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./liquibase/changelogs:/docker-entrypoint-initdb.d/
+
+  liquibase:
+    image: liquibase/liquibase
+    depends_on:
+      - postgres-db
+    volumes:
+      - ./liquibase:/liquibase/changelogs
+    command: >
+      --url=jdbc:postgresql://postgres-db:5432/{{ db_name }}
+      --username={{ db_user }}
+      --password={{ db_password }}
+      --changeLogFile=/liquibase/changelogs/master.xml
+      update
 
 volumes:
   postgres_data:
