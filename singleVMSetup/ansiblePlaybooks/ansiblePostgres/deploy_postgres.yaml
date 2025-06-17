@@ -88,20 +88,29 @@
         state: directory
         mode: '0755'
 
-    - name: Create liquibase directory
+    - name: Create liquibase directory structure
       ansible.builtin.file:
-        path: /opt/postgres/liquibase
+        path: "{{ item }}"
         state: directory
         mode: '0755'
+      loop:
+        - /opt/postgres/liquibase
+        - /opt/postgres/liquibase/changelogs
 
-    - name: Copy liquibase changelogs
+    # --- 5. Copy Liquibase files ---
+    - name: Copy master.xml
       ansible.builtin.copy:
-        src: files/liquibase/
-        dest: /opt/postgres/liquibase
+        src: files/liquibase/changelogs/master.xml
+        dest: /opt/postgres/liquibase/changelogs/master.xml
         mode: '0644'
-        recursive: yes
 
-    # --- 5. Clean up existing containers ---
+    - name: Copy V1__create_email_table.xml
+      ansible.builtin.copy:
+        src: files/liquibase/changelogs/V1__create_email_table.xml
+        dest: /opt/postgres/liquibase/changelogs/V1__create_email_table.xml
+        mode: '0644'
+
+    # --- 6. Clean up existing containers ---
     - name: Remove existing container
       community.docker.docker_container:
         name: "{{ container_name }}"
@@ -116,7 +125,7 @@
         state: absent
       ignore_errors: yes
 
-    # --- 6. Deploy new stack ---
+    # --- 7. Deploy new stack ---
     - name: Deploy docker-compose template
       ansible.builtin.template:
         src: templates/docker-compose-postgres.yml.j2
