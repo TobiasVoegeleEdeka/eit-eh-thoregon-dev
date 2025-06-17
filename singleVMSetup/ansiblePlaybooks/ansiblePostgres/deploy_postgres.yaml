@@ -1,8 +1,16 @@
-# deploy_postgres.yml 
 ---
 - name: Deploy PostgreSQL in a Docker container
   hosts: database_servers
   become: yes
+  # Vault-Datei einbinden
+  vars_files:
+    - ../ansibleVault/vault.yml
+
+  # Variablen für PostgreSQL-Credentials
+  vars:
+    db_name: "{{ db_name }}"
+    db_user: "{{ db_user }}"
+    db_password: "{{ vault_postgres_password }}"
 
   tasks:
     # --- 1. System-Voraussetzungen installieren ---
@@ -88,6 +96,11 @@
         src: templates/docker-compose-postgres.yml.j2
         dest: /opt/postgres/docker-compose.yml
         mode: '0644'
+      # Variablen für das Template übergeben
+      vars:
+        postgres_db: "{{ db_name }}"
+        postgres_user: "{{ db_user }}"
+        postgres_password: "{{ db_password }}"
 
     - name: Start the postgres container using Docker Compose
       community.docker.docker_compose_v2:
