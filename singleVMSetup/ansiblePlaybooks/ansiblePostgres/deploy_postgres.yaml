@@ -8,9 +8,10 @@
 
   # Variablen für PostgreSQL-Credentials
   vars:
-    db_name: "{{ db_name }}"
-    db_user: "{{ db_user }}"
+    db_name:  "{{ db_name }}"
+    db_user:  "{{ db_user }}"
     db_password: "{{ vault_postgres_password }}"
+    container_name: "postgres-db"  # Container-Name als Variable definiert
 
   tasks:
     # --- 1. System-Voraussetzungen installieren ---
@@ -22,7 +23,7 @@
           - curl
           - gnupg
           - lsb-release
-          - python3-pip # Stellt sicher, dass pip verfügbar ist
+          - python3-pip
         state: present
         update_cache: yes
 
@@ -33,17 +34,15 @@
         state: directory
         mode: '0755'
 
-    # NEU: Alten Schlüssel entfernen, um Konflikte zu vermeiden
     - name: Remove old Docker GPG key if it exists
       ansible.builtin.file:
         path: /etc/apt/keyrings/docker.gpg
         state: absent
 
-    # KORRIGIERT: Schlüssel als .asc herunterladen und dann de-armorieren
     - name: Download Docker's official GPG key
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /tmp/docker.asc # Temporärer Download-Ort
+        dest: /tmp/docker.asc
         mode: '0644'
         force: yes
 
@@ -51,14 +50,13 @@
       ansible.builtin.command:
         cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.asc
       args:
-        creates: /etc/apt/keyrings/docker.gpg # Führt den Befehl nur aus, wenn die Zieldatei nicht existiert
+        creates: /etc/apt/keyrings/docker.gpg
 
     - name: Clean up temporary GPG key file
       ansible.builtin.file:
         path: /tmp/docker.asc
         state: absent
 
-    # KORRIGIERT: APT-Repository mit dem korrekten Schlüsselpfad (.gpg) hinzufügen
     - name: Add Docker repository
       ansible.builtin.apt_repository:
         repo: >
@@ -66,7 +64,7 @@
           https://download.docker.com/linux/ubuntu
           {{ ansible_distribution_release }} stable
         state: present
-        filename: docker # Stellt sicher, dass der Dateiname konsistent ist
+        filename: docker
 
     - name: Install Docker Engine and Docker Compose plugin
       ansible.builtin.apt:
@@ -76,10 +74,10 @@
           - containerd.io
           - docker-compose-plugin
         state: present
-        update_cache: yes # Cache nach Hinzufügen des Repos aktualisieren
+        update_cache: yes
 
     # --- 3. Python-Abhängigkeiten für Ansible Docker-Module installieren ---
-    - name: Install Docker SDK for Python (required for Ansible modules)
+    - name: Install Docker SDK for Python
       ansible.builtin.pip:
         name: docker
         state: present
@@ -91,18 +89,28 @@
         state: directory
         mode: '0755'
 
+    # NEUE TASK: Vorhandenen Container stoppen und entfernen
+    - name: Ensure existing container is removed
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+        force_kill: yes
+        cleanup: yes
+      ignore_errors: yes
+      changed_when: false
+
     - name: Copy Docker Compose file to the remote host
       ansible.builtin.template:
         src: templates/docker-compose-postgres.yml.j2
         dest: /opt/postgres/docker-compose.yml
         mode: '0644'
-      # Variablen für das Template übergeben
       vars:
         postgres_db: "{{ db_name }}"
         postgres_user: "{{ db_user }}"
         postgres_password: "{{ db_password }}"
+        container_name: "{{ container_name }}"  # Variable an Template übergeben
 
     - name: Start the postgres container using Docker Compose
       community.docker.docker_compose_v2:
         project_src: /opt/postgres
-        state: present # Startet die Services, wenn sie nicht laufen.
+        state: present
