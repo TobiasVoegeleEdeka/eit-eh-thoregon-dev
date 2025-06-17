@@ -8,10 +8,11 @@
 
   # Variablen für PostgreSQL-Credentials
   vars:
-    db_name:  "{{ db_name }}"
-    db_user:  "{{ db_user }}"
+    db_name: "{{ vault_postgres_db_name }}"
+    db_user: "{{ vault_postgres_user }}"
     db_password: "{{ vault_postgres_password }}"
-    container_name: "postgres-db"  # Container-Name als Variable definiert
+    container_name: "postgres-db"
+    postgres_port: "5432"
 
   tasks:
     # --- 1. System-Voraussetzungen installieren ---
@@ -89,26 +90,25 @@
         state: directory
         mode: '0755'
 
-    # NEUE TASK: Vorhandenen Container stoppen und entfernen
-    - name: Ensure existing container is removed
+    - name: Ensure existing container is stopped and removed
       community.docker.docker_container:
         name: "{{ container_name }}"
         state: absent
         force_kill: yes
         cleanup: yes
       ignore_errors: yes
-      changed_when: false
+
+    - name: Ensure any existing docker-compose stack is down
+      community.docker.docker_compose_v2:
+        project_src: /opt/postgres
+        state: absent
+      ignore_errors: yes
 
     - name: Copy Docker Compose file to the remote host
       ansible.builtin.template:
         src: templates/docker-compose-postgres.yml.j2
         dest: /opt/postgres/docker-compose.yml
         mode: '0644'
-      vars:
-        postgres_db: "{{ db_name }}"
-        postgres_user: "{{ db_user }}"
-        postgres_password: "{{ db_password }}"
-      
 
     - name: Start the postgres container using Docker Compose
       community.docker.docker_compose_v2:
