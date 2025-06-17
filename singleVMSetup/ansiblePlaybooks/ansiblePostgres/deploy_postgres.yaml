@@ -132,7 +132,64 @@
         dest: /opt/postgres/docker-compose.yml
         mode: '0644'
 
-    - name: Start PostgreSQL with Liquibase
+    - name: Start PostgreSQL container
       community.docker.docker_compose_v2:
         project_src: /opt/postgres
         state: present
+      register: compose_output
+
+    # --- 8. Wait for PostgreSQL to be ready ---
+    - name: Wait for PostgreSQL to be ready
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: >
+          pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30
+      register: pg_ready
+      until: pg_ready.rc == 0
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+    # --- 9. Run Liquibase migration ---
+    - name: Run Liquibase migration
+      community.docker.docker_container:
+        name: liquibase-migration
+        image: liquibase/liquibase
+        volumes:
+          - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
+        command: >
+          --changeLogFile=/liquibase/changelogs/master.xml
+          --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
+          --username={{ db_user }}
+          --password={{ db_password }}
+          update
+        depends_on:
+          - "{{ container_name }}"
+        auto_remove: true
+      register: liquibase_result
+      failed_when: 
+        - liquibase_result.rc != 0
+        - "'Liquibase command successful' not in liquibase_result.output"
+
+    # --- 10. Verify tables ---
+    - name: Verify database tables
+      block:
+        - name: Check if emails table exists
+          community.postgresql.postgresql_query:
+            login_user: "{{ db_user }}"
+            login_password: "{{ db_password }}"
+            db: "{{ db_name }}"
+            query: |
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'emails'
+              );
+          register: table_exists
+          retries: 3
+          delay: 5
+          until: table_exists is succeeded
+
+        - name: Show table status
+          debug:
+            msg: "Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
+      when: liquibase_result is succeeded
