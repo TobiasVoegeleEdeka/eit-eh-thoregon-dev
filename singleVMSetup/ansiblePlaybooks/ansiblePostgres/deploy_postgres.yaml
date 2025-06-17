@@ -141,11 +141,10 @@
     # --- 8. Wait for PostgreSQL to be ready ---
     - name: Wait for PostgreSQL to be ready
       community.docker.docker_container_exec:
-        container: "{{ container_name }}"
-        command: >
-          pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30
+      container: "{{ container_name }}"
+      command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
       register: pg_ready
-      until: pg_ready.rc == 0
+      until: pg_ready is not failed
       retries: 10
       delay: 5
       ignore_errors: yes
@@ -153,23 +152,19 @@
     # --- 9. Run Liquibase migration ---
     - name: Run Liquibase migration
       community.docker.docker_container:
-        name: liquibase-migration
-        image: liquibase/liquibase
-        volumes:
-          - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
-        command: >
-          --changeLogFile=/liquibase/changelogs/master.xml
-          --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
-          --username={{ db_user }}
-          --password={{ db_password }}
-          update
-        depends_on:
-          - "{{ container_name }}"
-        auto_remove: true
+      name: liquibase-migration
+      image: liquibase/liquibase
+      volumes:
+        - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
+      command: >
+        --changeLogFile=/liquibase/changelogs/master.xml
+        --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
+        --username={{ db_user }}
+        --password={{ db_password }}
+        update
+      auto_remove: true
       register: liquibase_result
-      failed_when: 
-        - liquibase_result.rc != 0
-        - "'Liquibase command successful' not in liquibase_result.output"
+      failed_when: liquibase_result is failed
 
     # --- 10. Verify tables ---
     - name: Verify database tables
