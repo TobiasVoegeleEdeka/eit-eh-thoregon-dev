@@ -104,10 +104,10 @@
         dest: /opt/postgres/liquibase/changelogs/master.xml
         mode: '0644'
 
-    - name: Copy V1__create_email_table.xml
+    - name: Copy V1_create_email_table.xml
       ansible.builtin.copy:
-        src: files/liquibase/changelogs/V1__create_email_table.xml
-        dest: /opt/postgres/liquibase/changelogs/V1__create_email_table.xml
+        src: files/liquibase/changelogs/V1_create_email_table.xml
+        dest: /opt/postgres/liquibase/changelogs/V1_create_email_table.xml
         mode: '0644'
 
     # --- 6. Clean up existing containers ---
