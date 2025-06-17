@@ -2,7 +2,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:13
-    container_name: "{{ container_name }}" 
+    container_name: "mail_postgres_db" 
     environment:
       POSTGRES_DB: "{{ postgres_db }}"
       POSTGRES_USER: "{{ postgres_user }}"

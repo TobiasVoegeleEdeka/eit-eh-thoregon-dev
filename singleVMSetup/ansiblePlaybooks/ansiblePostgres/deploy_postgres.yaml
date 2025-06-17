@@ -108,7 +108,7 @@
         postgres_db: "{{ db_name }}"
         postgres_user: "{{ db_user }}"
         postgres_password: "{{ db_password }}"
-        container_name: "{{ container_name }}"  # Variable an Template übergeben
+      
 
     - name: Start the postgres container using Docker Compose
       community.docker.docker_compose_v2:
