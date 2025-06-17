@@ -100,13 +100,13 @@
     # --- 5. Copy Liquibase files ---
     - name: Copy master.xml
       ansible.builtin.copy:
-        src: files/liquibase/changelogs/master.xml
+        src: "{{ playbook_dir }}/files/liquibase/changelogs/master.xml"
         dest: /opt/postgres/liquibase/changelogs/master.xml
         mode: '0644'
 
     - name: Copy V1_create_email_table.xml
       ansible.builtin.copy:
-        src: files/liquibase/changelogs/V1_create_email_table.xml
+        src: "{{ playbook_dir }}/files/liquibase/changelogs/V1_create_email_table.xml"
         dest: /opt/postgres/liquibase/changelogs/V1_create_email_table.xml
         mode: '0644'
 
@@ -139,10 +139,18 @@
       register: compose_output
 
     # --- 8. Wait for PostgreSQL to be ready ---
+    - name: Ensure PostgreSQL container is running
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      until: container_info.container and container_info.container.State.Running
+      retries: 5
+      delay: 5
+
     - name: Wait for PostgreSQL to be ready
       community.docker.docker_container_exec:
-      container: "{{ container_name }}"
-      command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
+        container: "{{ container_name }}"
+        command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
       register: pg_ready
       until: pg_ready is not failed
       retries: 10
@@ -152,19 +160,23 @@
     # --- 9. Run Liquibase migration ---
     - name: Run Liquibase migration
       community.docker.docker_container:
-      name: liquibase-migration
-      image: liquibase/liquibase
-      volumes:
-        - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
-      command: >
-        --changeLogFile=/liquibase/changelogs/master.xml
-        --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
-        --username={{ db_user }}
-        --password={{ db_password }}
-        update
-      auto_remove: true
+        name: liquibase-migration
+        image: liquibase/liquibase
+        volumes:
+          - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
+        command: >
+          --changeLogFile=/liquibase/changelogs/master.xml
+          --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
+          --username={{ db_user }}
+          --password={{ db_password }}
+          update
+        auto_remove: true
       register: liquibase_result
-      failed_when: liquibase_result is failed
+
+    - name: Check Liquibase result
+      ansible.builtin.fail:
+        msg: "Liquibase migration failed"
+      when: liquibase_result is failed
 
     # --- 10. Verify tables ---
     - name: Verify database tables
@@ -185,6 +197,6 @@
           until: table_exists is succeeded
 
         - name: Show table status
-          debug:
+          ansible.builtin.debug:
             msg: "Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
       when: liquibase_result is succeeded
