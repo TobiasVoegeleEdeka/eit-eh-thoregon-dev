@@ -203,30 +203,18 @@
 
 # deploy_postgres.yml - V4, mit 'down' vor 'up'
 ---
-- name: Erstelle PostgreSQL Container auf Datenbank-Server
-  hosts: database_servers  # Nutzt die Gruppe aus Ihrem Inventory
+- name: Erstelle PostgreSQL Container
+  hosts: database_servers
   become: true
   vars:
     container_name: "mein_postgres"
-    postgres_image: "postgres:latest"
-    postgres_password: "geheim"
+    postgres_image: "postgres:15"  # explizite Version für Stabilität
+    postgres_password: "geheim"    # in Produktion bitte verschlüsseln!
     postgres_port: "5432:5432"
     postgres_volume: "pgdata:/var/lib/postgresql/data"
+    postgres_user: "postgres"     # Standard-User
 
   tasks:
-    - name: Stellen Sie sicher, dass Docker installiert ist
-      ansible.builtin.apt:
-        name: docker.io
-        state: present
-        update_cache: yes
-      when: ansible_os_family == 'Debian'
-
-    - name: Stellen Sie sicher, dass Docker-Dienst läuft
-      ansible.builtin.service:
-        name: docker
-        state: started
-        enabled: yes
-
     - name: PostgreSQL Container erstellen
       community.docker.docker_container:
         name: "{{ container_name }}"
@@ -235,11 +223,25 @@
         restart: true
         env:
           POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_USER: "{{ postgres_user }}"
         ports:
           - "{{ postgres_port }}"
         volumes:
           - "{{ postgres_volume }}"
+        pull: true  # stellt sicher, dass das neueste Image gezogen wird
 
-    - name: Zeige Erfolgsmeldung
+    - name: Container Status überprüfen
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+
+    - name: Zeige Verbindungsinformationen
       ansible.builtin.debug:
-        msg: "PostgreSQL Container '{{ container_name }}' wurde erfolgreich auf {{ inventory_hostname }} erstellt."
+        msg: |
+          PostgreSQL Container erfolgreich gestartet!
+          Host: {{ inventory_hostname }}
+          Port: 5432
+          User: {{ postgres_user }}
+          Password: {{ postgres_password }}
+          Volumes: {{ postgres_volume }}
+          Status: {{ container_info.container.State.Status }}
