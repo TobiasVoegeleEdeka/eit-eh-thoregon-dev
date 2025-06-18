@@ -203,8 +203,8 @@
 
 # deploy_postgres.yml - V4, mit 'down' vor 'up'
 ---
-- name: Erstelle PostgreSQL Container
-  hosts: localhost
+- name: Erstelle PostgreSQL Container auf Datenbank-Server
+  hosts: database_servers  # Nutzt die Gruppe aus Ihrem Inventory
   become: true
   vars:
     container_name: "mein_postgres"
@@ -214,6 +214,19 @@
     postgres_volume: "pgdata:/var/lib/postgresql/data"
 
   tasks:
+    - name: Stellen Sie sicher, dass Docker installiert ist
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: Stellen Sie sicher, dass Docker-Dienst läuft
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
     - name: PostgreSQL Container erstellen
       community.docker.docker_container:
         name: "{{ container_name }}"
@@ -228,5 +241,5 @@
           - "{{ postgres_volume }}"
 
     - name: Zeige Erfolgsmeldung
-      debug:
-        msg: "PostgreSQL Container '{{ container_name }}' wurde erfolgreich erstellt und gestartet."
+      ansible.builtin.debug:
+        msg: "PostgreSQL Container '{{ container_name }}' wurde erfolgreich auf {{ inventory_hostname }} erstellt."
