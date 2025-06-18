@@ -20,7 +20,7 @@ smtp_generic_maps = hash:/etc/postfix/generic
 mydestination = $myhostname, localhost.{{ main_domain }}, localhost, localhost.localdomain
 inet_interfaces = all
 
-mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.7/32 172.16.0.0/12
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.7/32 go-api
 relayhost =
 
 # --- Security & Recipient Restrictions ---
