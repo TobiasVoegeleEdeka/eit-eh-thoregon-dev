@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8080"
+    extra_hosts:
+      - "mail-service-vm.francecentral.cloudapp.azure.com:10.50.1.7"
     environment:
       - POSTFIX_FQDN=mail-service-vm.francecentral.cloudapp.azure.com
       - POSTFIX_CONNECT_IP=10.50.1.7
