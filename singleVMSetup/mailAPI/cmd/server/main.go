@@ -4,10 +4,10 @@ import (
 	"log"
 	"mailservice/internal/config"
 	customhttp "mailservice/internal/delivery/http"
+	"mailservice/internal/infrastructure/logging"
 	"mailservice/internal/infrastructure/smtp"
 	"mailservice/internal/usecase"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -15,19 +15,20 @@ func main() {
 	smtpCfg, serverCfg := config.LoadConfig()
 
 	// Logger initialisieren
-	logger := log.New(os.Stdout, "[MAIL-API] ", log.LstdFlags|log.Lmicroseconds)
+	mainLogger := logging.NewSMTPLogger()
+	connLogger := logging.NewConnLogger()
 
 	// SMTP-Client erstellen
-	smtpClient := smtp.NewClient(smtpCfg, logger)
+	smtpClient := smtp.NewClient(smtpCfg, mainLogger, connLogger)
 
 	// Usecase initialisieren
 	mailer := usecase.NewMailer(smtpClient)
 
 	// HTTP-Handler erstellen
-	handler := customhttp.NewHandler(mailer, logger)
+	handler := customhttp.NewHandler(mailer, mainLogger)
 
 	// Server starten
 	http.HandleFunc("/send-email", handler.SendEmail)
-	logger.Printf("Server starting on :%s", serverCfg.ListenPort)
+	mainLogger.Printf("Server starting on :%s", serverCfg.ListenPort)
 	log.Fatal(http.ListenAndServe(":"+serverCfg.ListenPort, nil))
 }
