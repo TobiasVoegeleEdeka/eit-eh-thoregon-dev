@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=builder /main .
 
 # Copy configuration files if any
-COPY configs/ ./configs/
+# COPY configs/ ./configs/
 
 EXPOSE 8080
 
