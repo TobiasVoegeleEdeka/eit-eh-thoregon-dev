@@ -203,112 +203,45 @@
 
 # deploy_postgres.yml - V4, mit 'down' vor 'up'
 ---
-- name: Deploy PostgreSQL with Liquibase
+- name: Erstelle PostgreSQL Container
   hosts: database_servers
-  become: yes
+  become: true
   vars:
-    container_name: "postgres-db"
-    postgres_image: "postgres:15"
+    container_name: "mein_postgres"
+    postgres_image: "postgres:15"  
+    postgres_password: "geheim"    # in Produktion bitte verschlüsseln!
     postgres_port: "5432:5432"
     postgres_volume: "pgdata:/var/lib/postgresql/data"
-    db_name: "myapp_db"
-    db_user: "app_user"
-    db_password: "securepassword"
-    liquibase_dir: "/opt/postgres/liquibase"
+    postgres_user: "postgres"     # Standard-User
 
   tasks:
-    # --- 1. Check if container exists and is running ---
-    - name: Check for existing PostgreSQL container
-      community.docker.docker_container_info:
-        name: "{{ container_name }}"
-      register: container_info
-      ignore_errors: yes
-      changed_when: false
-
-    # --- 2. Only create container if it doesn't exist or isn't running ---
-    - name: Create PostgreSQL container if needed
+    - name: PostgreSQL Container erstellen
       community.docker.docker_container:
         name: "{{ container_name }}"
         image: "{{ postgres_image }}"
         state: started
         restart: true
         env:
-          POSTGRES_USER: "{{ db_user }}"
-          POSTGRES_PASSWORD: "{{ db_password }}"
-          POSTGRES_DB: "{{ db_name }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_USER: "{{ postgres_user }}"
         ports:
           - "{{ postgres_port }}"
         volumes:
           - "{{ postgres_volume }}"
-        pull: true
-      when: >
-        not container_info.exists or
-        (container_info.exists and not container_info.container.State.Running)
-      register: container_result
+        pull: true  
 
-    # --- 3. Prepare directories ---
-    - name: Create postgres directory structure
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - "{{ liquibase_dir }}"
-        - "{{ liquibase_dir }}/changelogs"
+    - name: Container Status überprüfen
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
 
-    # --- 4. Copy Liquibase files ---
-    - name: Copy Liquibase changelogs
-      ansible.builtin.copy:
-        src: "files/liquibase/changelogs/{{ item }}"
-        dest: "{{ liquibase_dir }}/changelogs/{{ item }}"
-        mode: '0644'
-      loop:
-        - "master.xml"
-        - "V1_create_email_table.xml"
-
-    # --- 5. Wait for PostgreSQL to be ready ---
-    - name: Wait for PostgreSQL to start
-      community.docker.docker_container_exec:
-        container: "{{ container_name }}"
-        command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
-      register: pg_ready
-      until: pg_ready is not failed
-      retries: 10
-      delay: 5
-
-    # --- 6. Run Liquibase migration ---
-    - name: Execute Liquibase migration
-      community.docker.docker_container:
-        name: liquibase-migration
-        image: liquibase/liquibase
-        volumes:
-          - "{{ liquibase_dir }}/changelogs:/liquibase/changelogs"
-        command: >
-          --changeLogFile=/liquibase/changelogs/master.xml
-          --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
-          --username={{ db_user }}
-          --password={{ db_password }}
-          --logLevel=info
-          update
-        auto_remove: true
-      register: liquibase_result
-
-    # --- 7. Verify migration ---
-    - name: Verify database tables
-      block:
-        - name: Check if emails table exists
-          community.postgresql.postgresql_query:
-            login_user: "{{ db_user }}"
-            login_password: "{{ db_password }}"
-            db: "{{ db_name }}"
-            query: |
-              SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'emails'
-              );
-          register: table_exists
-
-        - name: Show migration result
-          ansible.builtin.debug:
-            msg: "Liquibase migration successful. Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
-      when: liquibase_result is succeeded
+    - name: Zeige Verbindungsinformationen
+      ansible.builtin.debug:
+        msg: |
+          PostgreSQL Container erfolgreich gestartet!
+          Host: {{ inventory_hostname }}
+          Port: 5432
+          User: {{ postgres_user }}
+          Password: {{ postgres_password }}
+          Volumes: {{ postgres_volume }}
+          Status: {{ container_info.container.State.Status }}
