@@ -239,6 +239,7 @@
       community.docker.docker_compose_v2:
         project_src: "{{ project_dir }}"
         state: absent # Stoppt und entfernt Container, Netzwerke etc.
+        remove_orphans: yes # HINZUGEFÜGT: Entfernt verwaiste Container (z.B. liquibase)
 
     # --- 4. PostgreSQL Container via Docker Compose starten (docker compose up) ---
     - name: Start PostgreSQL container and associated services
