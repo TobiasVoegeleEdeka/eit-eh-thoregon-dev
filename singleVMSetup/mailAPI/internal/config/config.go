@@ -18,9 +18,9 @@ type ServerConfig struct {
 
 func LoadConfig() (*SMTPConfig, *ServerConfig) {
 	smtpCfg := &SMTPConfig{
-		TargetFQDN:    getEnv("POSTFIX_FQDN", "mail-service-vm.francecentral.cloudapp.azure.com"),
-		ConnectIP:     getEnv("POSTFIX_CONNECT_IP", "10.50.1.7"),
-		Port:          getEnv("POSTFIX_PORT", "587"),
+		TargetFQDN:    getEnv("POSTFIX_FQDN", "localhost"),
+		ConnectIP:     getEnv("POSTFIX_CONNECT_IP", "127.0.0.1"),
+		Port:          getEnv("POSTFIX_PORT", "25"),
 		DefaultSender: getEnv("DEFAULT_SENDER", "mail-service@mail-service-vm.francecentral.cloudapp.azure.com"),
 	}
 
