@@ -11,6 +11,7 @@
     postgres_password: "{{ vault_postgres_password | default('securepassword123') }}"
     project_dir: /opt/postgres  # Base directory for Liquibase files
     docker_network: "bridge"  # Use the standard Docker bridge network
+    ansible_python_interpreter: "/usr/bin/python3.10"  # Explicitly set Python interpreter
 
   tasks:
     - name: Ensure Docker is running
@@ -20,6 +21,26 @@
         enabled: true
       register: docker_service
       failed_when: docker_service is failed
+
+    - name: Install Python and PostgreSQL dependencies
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+          - python3-dev
+          - libpq-dev
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Install psycopg2 for PostgreSQL
+      ansible.builtin.pip:
+        name: psycopg2-binary
+        state: present
+        executable: pip3
+      register: pip_install
+      retries: 3
+      delay: 5
+      until: pip_install is succeeded
 
     - name: Create Docker network if it does not exist
       community.docker.docker_network:
@@ -62,7 +83,7 @@
     - name: Run Liquibase migration
       community.docker.docker_container:
         name: liquibase-migration
-        image: liquibase/liquibase:4.29.2  # Specify a version for consistency
+        image: liquibase/liquibase:4.29.2
         volumes:
           - "{{ project_dir }}/liquibase/changelogs:/liquibase/changelogs"
         command: >
@@ -74,11 +95,12 @@
         auto_remove: true
         networks:
           - name: "{{ docker_network }}"
+        output_logs: true  # Enable logs for debugging
       register: liquibase_result
 
     - name: Check Liquibase migration result
       ansible.builtin.fail:
-        msg: "Liquibase migration failed"
+        msg: "Liquibase migration failed: {{ liquibase_result.container.Output | default('No output available') }}"
       when: liquibase_result is failed
 
     - name: Verify database tables
@@ -93,6 +115,9 @@
                 SELECT FROM information_schema.tables 
                 WHERE table_name = 'emails'
               )
+            login_host: "{{ container_name }}"
+            port: 5432
+            ssl_mode: prefer
           register: table_exists
           retries: 3
           delay: 5
