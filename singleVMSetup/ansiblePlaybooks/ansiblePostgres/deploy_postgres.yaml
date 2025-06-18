@@ -217,48 +217,16 @@
     liquibase_dir: "/opt/postgres/liquibase"
 
   tasks:
-    # --- 1. Check for and remove conflicting containers ---
-    - name: Check for existing containers using port 5432
+    # --- 1. Check if container exists and is running ---
+    - name: Check for existing PostgreSQL container
       community.docker.docker_container_info:
-        name: "{{ item }}"
-      register: existing_containers
+        name: "{{ container_name }}"
+      register: container_info
       ignore_errors: yes
-      loop:
-        - "{{ container_name }}"
-        - "postgres"
-        - "postgresql"
+      changed_when: false
 
-    - name: Remove conflicting containers
-      community.docker.docker_container:
-        name: "{{ item.item }}"
-        state: absent
-        force_kill: yes
-        cleanup: yes
-      when: item.exists
-      loop: "{{ existing_containers.results }}"
-
-    # --- 2. Prepare directories ---
-    - name: Create postgres directory structure
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - "{{ liquibase_dir }}"
-        - "{{ liquibase_dir }}/changelogs"
-
-    # --- 3. Copy Liquibase files ---
-    - name: Copy Liquibase changelogs
-      ansible.builtin.copy:
-        src: "files/liquibase/changelogs/{{ item }}"
-        dest: "{{ liquibase_dir }}/changelogs/{{ item }}"
-        mode: '0644'
-      loop:
-        - "master.xml"
-        - "V1_create_email_table.xml"
-
-    # --- 4. Deploy PostgreSQL container ---
-    - name: Create PostgreSQL container
+    # --- 2. Only create container if it doesn't exist or isn't running ---
+    - name: Create PostgreSQL container if needed
       community.docker.docker_container:
         name: "{{ container_name }}"
         image: "{{ postgres_image }}"
@@ -273,7 +241,30 @@
         volumes:
           - "{{ postgres_volume }}"
         pull: true
+      when: >
+        not container_info.exists or
+        (container_info.exists and not container_info.container.State.Running)
       register: container_result
+
+    # --- 3. Prepare directories ---
+    - name: Create postgres directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ liquibase_dir }}"
+        - "{{ liquibase_dir }}/changelogs"
+
+    # --- 4. Copy Liquibase files ---
+    - name: Copy Liquibase changelogs
+      ansible.builtin.copy:
+        src: "files/liquibase/changelogs/{{ item }}"
+        dest: "{{ liquibase_dir }}/changelogs/{{ item }}"
+        mode: '0644'
+      loop:
+        - "master.xml"
+        - "V1_create_email_table.xml"
 
     # --- 5. Wait for PostgreSQL to be ready ---
     - name: Wait for PostgreSQL to start
