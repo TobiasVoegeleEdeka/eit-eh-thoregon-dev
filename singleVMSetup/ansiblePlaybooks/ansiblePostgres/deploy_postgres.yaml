@@ -201,61 +201,52 @@
 #             msg: "Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
 #       when: liquibase_result is succeeded
 
+# deploy_postgres.yml - V4, mit 'down' vor 'up'
 ---
-- name: PostgreSQL Database erstellen
+- name: Deploy PostgreSQL Database using Docker Compose
   hosts: database_servers
   become: yes
   vars_files:
-    - ../ansibleVault/vault.yml
+    - ../ansibleVault/vault.yml # Pfad zur Vault-Datei anpassen
 
   vars:
-    db_name: "{{ vault_postgres_db_name }}"
-    db_user: "{{ vault_postgres_user }}"
-    db_password: "{{ vault_postgres_password }}"
-    container_name: "postgres-db"
-    postgres_port: "5432"
+    # Standardwerte, die von der Vault-Datei überschrieben werden
+    db_name: "{{ vault_postgres_db_name | default('defaultdb') }}"
+    db_user: "{{ vault_postgres_user | default('defaultuser') }}"
+    db_password: "{{ vault_postgres_password | default('supersecret') }}"
+    project_dir: /opt/postgres
 
   tasks:
     # --- 1. Verzeichnisstruktur vorbereiten ---
-    - name: Postgres Verzeichnis erstellen
+    - name: Ensure the postgres project directory exists
       ansible.builtin.file:
-        path: /opt/postgres
+        path: "{{ project_dir }}"
         state: directory
         mode: '0755'
 
     # --- 2. Docker Compose Konfiguration erstellen ---
-    - name: Docker Compose Konfiguration erstellen
+    - name: Create Docker Compose configuration from template
       ansible.builtin.template:
+        # Stellen Sie sicher, dass diese Vorlagendatei existiert
         src: templates/docker-compose-postgres.yml.j2
-        dest: /opt/postgres/docker-compose.yml
+        dest: "{{ project_dir }}/docker-compose.yml"
         mode: '0644'
 
-    # --- 3. Existierende Container bereinigen ---
-    - name: Existierenden Container entfernen
-      community.docker.docker_container:
-        name: "{{ container_name }}"
-        state: absent
-        force_kill: yes
-        cleanup: yes
-      ignore_errors: yes
-
-    # --- 4. PostgreSQL Container starten ---
-    - name: PostgreSQL Container starten
+    # --- 3. Alte Docker Compose Services stoppen und entfernen (docker compose down) ---
+    - name: Shut down and remove existing services to ensure a clean state
       community.docker.docker_compose_v2:
-        project_src: /opt/postgres
-        state: present
-      register: compose_output
+        project_src: "{{ project_dir }}"
+        state: absent # Stoppt und entfernt Container, Netzwerke etc.
 
-    # # --- 5. Container Status überprüfen ---
-    # - name: Container Status abfragen
-    #   community.docker.docker_container_info:
-    #     name: "{{ container_name }}"
-    #   register: container_info
-    #   until: container_info.container and container_info.container.State.Running
-    #   retries: 10
-    #   delay: 5
+    # --- 4. PostgreSQL Container via Docker Compose starten (docker compose up) ---
+    - name: Start PostgreSQL container and associated services
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: present # Startet die Services und baut Images bei Bedarf
+        # 'up' ist das Standardkommando, kann aber explizit gemacht werden:
+        # command: ["up", "-d", "--build"]
 
-    # --- 6. Erfolgsmeldung ---
-    - name: Datenbankstatus anzeigen
+    # --- 5. Erfolgsmeldung ---
+    - name: Show success message
       ansible.builtin.debug:
-        msg: "PostgreSQL Container wurde erfolgreich gestartet"
+        msg: "PostgreSQL deployment via Docker Compose was successful."
