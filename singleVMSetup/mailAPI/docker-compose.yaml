@@ -16,7 +16,7 @@ services:
       - POSTFIX_FQDN=localhost
       - POSTFIX_CONNECT_IP=127.0.0.1
       - POSTFIX_PORT=25
-      - DEFAULT_SENDER=admin@mail-service-vm.francecentral.cloudapp.azure.com
+      - DEFAULT_SENDER=azureadmin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
     # networks:
     #   - mail-network
