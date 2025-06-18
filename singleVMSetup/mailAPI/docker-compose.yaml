@@ -31,9 +31,9 @@ services:
       - ./nginx/nginx-simple.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - go-api
-    networks:
-      - mail-network
+    # networks:
+    #   - mail-network
 
-networks:
-  mail-network:
-    driver: bridge
+# networks:
+#   mail-network:
+#     driver: bridge
