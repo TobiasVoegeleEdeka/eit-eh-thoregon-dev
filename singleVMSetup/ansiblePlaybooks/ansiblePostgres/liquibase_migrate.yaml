@@ -11,7 +11,8 @@
     postgres_password: "{{ vault_postgres_password | default('securepassword123') }}"
     project_dir: /opt/postgres  # Base directory for Liquibase files
     docker_network: "bridge"  # Use the standard Docker bridge network
-    ansible_python_interpreter: "/usr/bin/python3.10"  # Explicitly set Python interpreter
+    ansible_python_interpreter: "/usr/bin/python3.10"  # Explicit Python interpreter
+    ansible_ssh_extra_args: "-o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -o ConnectTimeout=10"  # Disable SSH multiplexing
 
   tasks:
     - name: Ensure Docker is running
@@ -48,6 +49,16 @@
         driver: bridge
         state: present
       register: network_result
+
+    - name: Ensure PostgreSQL container is running and on bridge network
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+        networks:
+          - name: "{{ docker_network }}"
+        published_ports:
+          - "5432:5432"  # Expose PostgreSQL port to host
+      register: postgres_container
 
     - name: Create Liquibase directory structure
       ansible.builtin.file:
@@ -95,7 +106,7 @@
         auto_remove: true
         networks:
           - name: "{{ docker_network }}"
-        output_logs: true  # Enable logs for debugging
+        output_logs: true
       register: liquibase_result
 
     - name: Check Liquibase migration result
@@ -115,7 +126,7 @@
                 SELECT FROM information_schema.tables 
                 WHERE table_name = 'emails'
               )
-            login_host: "{{ container_name }}"
+            login_host: "localhost"  # Use localhost since port is exposed to host
             port: 5432
             ssl_mode: prefer
           register: table_exists
