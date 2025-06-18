@@ -246,14 +246,14 @@
         state: present
       register: compose_output
 
-    # --- 5. Container Status überprüfen ---
-    - name: Container Status abfragen
-      community.docker.docker_container_info:
-        name: "{{ container_name }}"
-      register: container_info
-      until: container_info.container and container_info.container.State.Running
-      retries: 10
-      delay: 5
+    # # --- 5. Container Status überprüfen ---
+    # - name: Container Status abfragen
+    #   community.docker.docker_container_info:
+    #     name: "{{ container_name }}"
+    #   register: container_info
+    #   until: container_info.container and container_info.container.State.Running
+    #   retries: 10
+    #   delay: 5
 
     # --- 6. Erfolgsmeldung ---
     - name: Datenbankstatus anzeigen
