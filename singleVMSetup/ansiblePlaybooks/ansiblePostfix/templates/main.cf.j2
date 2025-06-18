@@ -34,6 +34,7 @@ smtpd_tls_cert_file = /etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem
 smtpd_tls_key_file = /etc/letsencrypt/live/{{ public_fqdn }}/privkey.pem
 smtpd_use_tls = yes
 smtpd_tls_security_level = encrypt
+smtp_tls_policy_maps = hash:/etc/postfix/tls_policy
 
 smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
 smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
