@@ -213,11 +213,31 @@
     postgres_volume: "pgdata:/var/lib/postgresql/data"
     db_name: "myapp_db"
     db_user: "app_user"
-    db_password: "securepassword"  # In Produktion via Vault verschlüsseln!
+    db_password: "securepassword"
     liquibase_dir: "/opt/postgres/liquibase"
 
   tasks:
-    # --- 1. Prepare directories ---
+    # --- 1. Check for and remove conflicting containers ---
+    - name: Check for existing containers using port 5432
+      community.docker.docker_container_info:
+        name: "{{ item }}"
+      register: existing_containers
+      ignore_errors: yes
+      loop:
+        - "{{ container_name }}"
+        - "postgres"
+        - "postgresql"
+
+    - name: Remove conflicting containers
+      community.docker.docker_container:
+        name: "{{ item.item }}"
+        state: absent
+        force_kill: yes
+        cleanup: yes
+      when: item.exists
+      loop: "{{ existing_containers.results }}"
+
+    # --- 2. Prepare directories ---
     - name: Create postgres directory structure
       ansible.builtin.file:
         path: "{{ item }}"
@@ -227,7 +247,7 @@
         - "{{ liquibase_dir }}"
         - "{{ liquibase_dir }}/changelogs"
 
-    # --- 2. Copy Liquibase files ---
+    # --- 3. Copy Liquibase files ---
     - name: Copy Liquibase changelogs
       ansible.builtin.copy:
         src: "files/liquibase/changelogs/{{ item }}"
@@ -236,15 +256,6 @@
       loop:
         - "master.xml"
         - "V1_create_email_table.xml"
-
-    # --- 3. Clean up existing container ---
-    - name: Remove existing PostgreSQL container
-      community.docker.docker_container:
-        name: "{{ container_name }}"
-        state: absent
-        force_kill: yes
-        cleanup: yes
-      ignore_errors: yes
 
     # --- 4. Deploy PostgreSQL container ---
     - name: Create PostgreSQL container
@@ -262,6 +273,7 @@
         volumes:
           - "{{ postgres_volume }}"
         pull: true
+      register: container_result
 
     # --- 5. Wait for PostgreSQL to be ready ---
     - name: Wait for PostgreSQL to start
