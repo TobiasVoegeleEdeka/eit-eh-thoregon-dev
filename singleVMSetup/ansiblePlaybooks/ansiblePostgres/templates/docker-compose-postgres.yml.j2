@@ -31,7 +31,7 @@ volumes:
 services:
   postgres-db:
     image: postgres:13
-    container_name: postgres-db  # Explicit container name
+    container_name: postgres-db-test
     environment:
       POSTGRES_DB: {{ db_name }}
       POSTGRES_USER: {{ db_user }}
