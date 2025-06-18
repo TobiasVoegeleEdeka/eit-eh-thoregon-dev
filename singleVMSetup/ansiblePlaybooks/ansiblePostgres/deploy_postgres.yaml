@@ -215,6 +215,8 @@
     db_user: "{{ vault_postgres_user | default('defaultuser') }}"
     db_password: "{{ vault_postgres_password | default('supersecret') }}"
     project_dir: /opt/postgres
+    # HINZUGEFÜGT: Die fehlende Variable definieren
+    postgres_port: "5432"
 
   tasks:
     # --- 1. Verzeichnisstruktur vorbereiten ---
