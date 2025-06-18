@@ -1,36 +1,29 @@
 # Stage 1: Build the Go application
 FROM golang:1.24-alpine AS builder
-# Uses golang:1.22-alpine for a lightweight build environment.
 
 WORKDIR /app
 
-# Copy go.mod to download dependencies
-# go.sum is not copied as it does not exist in this setup
-COPY go.mod ./
+# Copy go.mod and go.sum first for better caching
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy Go source files from the build context root
-# Assumes all .go files (e.g., main.go) are in the root directory
-COPY *.go ./
-# Alternative: Use `COPY . .` if code is in subdirectories
+# Copy the entire project (mit der neuen Struktur)
+COPY . .
 
 # Build the application
-# CGO_ENABLED=0 ensures a statically linked binary
-# -ldflags="-s -w" strips debug symbols for a smaller binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o /main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o /main ./cmd/server
 
 # Stage 2: Create the minimal runtime image
 FROM alpine:latest
-# Uses alpine:latest for a very small runtime image
 
 WORKDIR /app
-# Sets working directory to /app for consistency
 
 # Copy the binary from the builder stage
 COPY --from=builder /main .
 
-# Expose port 8080 (matches LISTEN_PORT in docker-compose.yaml)
+# Copy configuration files if any
+COPY configs/ ./configs/
+
 EXPOSE 8080
 
-# Run the application
 CMD ["./main"]

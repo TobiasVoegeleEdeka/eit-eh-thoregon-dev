@@ -1,3 +1,3 @@
-module mailapi
+module mailservice
 
 go 1.24.2

@@ -7,10 +7,12 @@ services:
     ports:
       - "8081:8080"  # Host:8081 -> Container:8080 (für direkten Zugriff testen)
     environment:
+      environment:
+      - POSTFIX_FQDN=mail-service-vm.francecentral.cloudapp.azure.com
+      - POSTFIX_CONNECT_IP=10.50.1.7
+      - POSTFIX_PORT=587
+      - DEFAULT_SENDER=admin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
-      - SMTP_HOST=mail-service-vm.francecentral.cloudapp.azure.com
-      - SMTP_PORT=587
-      - SMTP_FROM=admin@mail-service-vm.francecentral.cloudapp.azure.com
     networks:
       - mail-network
 
