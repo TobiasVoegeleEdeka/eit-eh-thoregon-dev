@@ -13,9 +13,9 @@ services:
     # extra_hosts:
     #   - "mail-service-vm.francecentral.cloudapp.azure.com:10.50.1.7"
     environment:
-      - POSTFIX_FQDN=mail-service-vm.francecentral.cloudapp.azure.com
-      - POSTFIX_CONNECT_IP=10.50.1.7
-      - POSTFIX_PORT=587
+      - POSTFIX_FQDN=localhost
+      - POSTFIX_CONNECT_IP=127.0.0.1
+      - POSTFIX_PORT=25
       - DEFAULT_SENDER=admin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
     # networks:
