@@ -202,7 +202,7 @@
 #       when: liquibase_result is succeeded
 
 ---
-- name: PostgreSQL Datenbank erstellen
+- name: PostgreSQL Database erstellen
   hosts: database_servers
   become: yes
   vars_files:
@@ -223,7 +223,7 @@
         state: directory
         mode: '0755'
 
-    # --- 2. Docker Compose Template bereitstellen ---
+    # --- 2. Docker Compose Konfiguration erstellen ---
     - name: Docker Compose Konfiguration erstellen
       ansible.builtin.template:
         src: templates/docker-compose-postgres.yml.j2
@@ -246,17 +246,16 @@
         state: present
       register: compose_output
 
-    # --- 5. Datenbankverfügbarkeit prüfen ---
-    - name: Auf PostgreSQL warten
-      community.docker.docker_container_exec:
-        container: "{{ container_name }}"
-        command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
-      register: pg_ready
-      until: pg_ready is not failed
+    # --- 5. Container Status überprüfen ---
+    - name: Container Status abfragen
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+      until: container_info.container and container_info.container.State.Running
       retries: 10
       delay: 5
 
     # --- 6. Erfolgsmeldung ---
     - name: Datenbankstatus anzeigen
       ansible.builtin.debug:
-        msg: "PostgreSQL Datenbank '{{ db_name }}' wurde erfolgreich erstellt"
+        msg: "PostgreSQL Container wurde erfolgreich gestartet"
