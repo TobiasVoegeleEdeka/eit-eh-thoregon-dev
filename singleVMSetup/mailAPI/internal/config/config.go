@@ -20,7 +20,7 @@ func LoadConfig() (*SMTPConfig, *ServerConfig) {
 	smtpCfg := &SMTPConfig{
 		TargetFQDN:    getEnv("POSTFIX_FQDN", "mail-service-vm.francecentral.cloudapp.azure.com"),
 		ConnectIP:     getEnv("POSTFIX_CONNECT_IP", "10.50.1.7"),
-		Port:          getEnv("POSTFIX_PORT", "25"),
+		Port:          getEnv("POSTFIX_PORT", "587"),
 		DefaultSender: getEnv("DEFAULT_SENDER", "mail-service@mail-service-vm.francecentral.cloudapp.azure.com"),
 	}
 
