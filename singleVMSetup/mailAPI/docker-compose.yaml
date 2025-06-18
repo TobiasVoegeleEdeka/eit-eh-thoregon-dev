@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   go-api:
     build:
@@ -5,15 +7,18 @@ services:
       dockerfile: Dockerfile
     container_name: go-api
     restart: unless-stopped
-    network_mode: "host"  # Wichtig: Nutzt das Host-Netzwerk direkt
+    # ports:
+    #   - "8081:8080"
+    # extra_hosts:
+    #   - "mail-service-vm.francecentral.cloudapp.azure.com:10.50.1.7"
     environment:
-      - POSTFIX_FQDN=localhost  # Jetzt localhost, da wir host networking nutzen
-      - POSTFIX_CONNECT_IP=127.0.0.1  # Verbindung zu localhost
-      - POSTFIX_PORT=25  # Standard SMTP-Port statt 587
+      - POSTFIX_FQDN=mail-service-vm.francecentral.cloudapp.azure.com
+      - POSTFIX_CONNECT_IP=10.50.1.7
+      - POSTFIX_PORT=587
       - DEFAULT_SENDER=admin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
-    volumes:
-      - ./:/app  # Für Entwicklung mit Live-Reload
+    networks:
+      - mail-network
 
   nginx:
     image: nginx:1.24-alpine
@@ -25,6 +30,9 @@ services:
       - ./nginx/nginx-simple.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - go-api
-    network_mode: "host"  # Konsistente Netzwerkkonfiguration
+    networks:
+      - mail-network
 
-# Kein separates Netzwerk mehr nötig, da host-mode verwendet wird
+networks:
+  mail-network:
+    driver: bridge
