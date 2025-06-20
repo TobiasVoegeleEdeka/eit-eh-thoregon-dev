@@ -12,22 +12,22 @@ services:
       POSTFIX_PORT: 25
       DEFAULT_SENDER: azureadmin@mail-service-vm.francecentral.cloudapp.azure.com
       LISTEN_PORT: 8080
-      BOUNCE_SERVICE_URL: http://127.0.0.1:8081/bounces
+      # BOUNCE_SERVICE_URL: http://127.0.0.1:8081/bounces
 
-  bounce-service:
-    build:
-      context: ./bounceservice
-      dockerfile: Dockerfile
-    container_name: bounce-service
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - /var/log:/var/log:ro
-    environment:
-      POSTFIX_LOG_PATH: /var/log/mail.log
-      API_NOTIFICATION_URL: http://127.0.0.1:8080/api/bounces
-    ports:
-      - "8081:8081"
+  # bounce-service:
+  #   build:
+  #     context: ./bounceservice
+  #     dockerfile: Dockerfile
+  #   container_name: bounce-service
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   volumes:
+  #     - /var/log:/var/log:ro
+  #   environment:
+  #     POSTFIX_LOG_PATH: /var/log/mail.log
+  #     API_NOTIFICATION_URL: http://127.0.0.1:8080/api/bounces
+  #   ports:
+  #     - "8081:8081"
 
   nginx:
     image: nginx:1.24-alpine
