@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       - POSTFIX_FQDN=localhost
-      - POSTFIX_CONNECT_IP=127.0.0.1
+      - POSTFIX_CONNECT_IP=host.docker.internal 
       - POSTFIX_PORT=25
       - DEFAULT_SENDER=azureadmin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
