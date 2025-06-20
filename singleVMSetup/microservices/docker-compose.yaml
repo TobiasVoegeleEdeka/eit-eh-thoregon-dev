@@ -3,23 +3,33 @@ version: '3.8'
 services:
   go-api:
     build:
-      context: .
+      context: ./mailAPI
       dockerfile: Dockerfile
     container_name: go-api
     restart: unless-stopped
     network_mode: "host"
-    # ports:
-    #   - "8081:8080"
-    # extra_hosts:
-    #   - "mail-service-vm.francecentral.cloudapp.azure.com:10.50.1.7"
     environment:
       - POSTFIX_FQDN=localhost
       - POSTFIX_CONNECT_IP=127.0.0.1
       - POSTFIX_PORT=25
       - DEFAULT_SENDER=azureadmin@mail-service-vm.francecentral.cloudapp.azure.com
       - LISTEN_PORT=8080
-    # networks:
-    #   - mail-network
+      - BOUNCE_SERVICE_URL=http://127.0.0.1:8081/bounces
+
+  bounce-service:
+    build:
+      context: ./bounceservice
+      dockerfile: Dockerfile
+    container_name: bounce-service
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - /var/log:/var/log:ro
+    environment:
+      - POSTFIX_LOG_PATH=/var/log/mail.log
+      - API_NOTIFICATION_URL=http://127.0.0.1:8080/api/bounces
+    ports:
+      - "8081:8081"
 
   nginx:
     image: nginx:1.24-alpine
@@ -31,10 +41,4 @@ services:
       - ./nginx/nginx-simple.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - go-api
-    network_mode: "host" 
-    # networks:
-    #   - mail-network
-
-# networks:
-#   mail-network:
-#     driver: bridge
+    network_mode: "host"
