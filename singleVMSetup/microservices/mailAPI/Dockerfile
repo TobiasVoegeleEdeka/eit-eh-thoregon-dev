@@ -4,10 +4,10 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 # Copy go.mod and go.sum first for better caching
-# COPY go.mod go.sum ./
-# RUN go mod download
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Copy the entire project (mit der neuen Struktur)
+# Copy the rest of the application's source code
 COPY . .
 
 # Build the application
@@ -21,9 +21,7 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /main .
 
-# Copy configuration files if any
-# COPY configs/ ./configs/
-
+# Expose the port the app runs on
 EXPOSE 8080
 
 CMD ["./main"]
