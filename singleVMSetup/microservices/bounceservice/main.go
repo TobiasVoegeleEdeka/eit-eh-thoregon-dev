@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time" // Stellen Sie sicher, dass "time" importiert ist
+	"time"
 )
 
 var (
@@ -17,10 +17,9 @@ var (
 )
 
 func main() {
-	// Starte Log-Überwachung im Hintergrund
+
 	go watchPostfixLogs()
 
-	// API-Endpoint
 	http.HandleFunc("/bounces", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -32,27 +31,23 @@ func main() {
 	http.ListenAndServe(":8081", nil)
 }
 
-// DIES IST DIE NEUE, ROBUSTE VERSION DER FUNKTION
 func watchPostfixLogs() {
-	var lastKnownSize int64 = 0 // Speichert die zuletzt gesehene Dateigröße
+	var lastKnownSize int64 = 0
 
-	// Zuerst die Startgröße der Datei ermitteln, damit wir nur neue Zeilen lesen
 	info, err := os.Stat("/data/mail.log")
 	if err == nil {
 		lastKnownSize = info.Size()
 	}
 
-	// Eine Endlosschleife, die alle 5 Sekunden prüft
 	for {
 		time.Sleep(5 * time.Second)
 
 		stat, err := os.Stat("/data/mail.log")
 		if err != nil {
 			log.Printf("WARN: Could not stat log file: %v", err)
-			continue // Mache nach der Pause weiter
+			continue
 		}
 
-		// Nur wenn die Datei gewachsen ist, lesen wir sie
 		if stat.Size() > lastKnownSize {
 			log.Printf("File has grown from %d to %d bytes. Reading new lines.", lastKnownSize, stat.Size())
 
@@ -62,7 +57,6 @@ func watchPostfixLogs() {
 				continue
 			}
 
-			// Springe zur letzten bekannten Position und lese von dort
 			file.Seek(lastKnownSize, 0)
 			scanner := bufio.NewScanner(file)
 			for scanner.Scan() {
@@ -76,7 +70,6 @@ func watchPostfixLogs() {
 			}
 			file.Close()
 
-			// Aktualisiere die Größe für den nächsten Durchlauf
 			lastKnownSize = stat.Size()
 		}
 	}
