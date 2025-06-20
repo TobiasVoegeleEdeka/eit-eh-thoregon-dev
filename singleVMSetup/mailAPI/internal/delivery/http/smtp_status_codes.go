@@ -4,23 +4,19 @@ import (
 	"net/http"
 )
 
-// SMTPStatusCodes enthält die Zuordnung von SMTP-Codes zu HTTP-Statuscodes
 var SMTPStatusCodes = map[string]int{
-	"2":   http.StatusOK,
-	"4":   http.StatusTooManyRequests,
-	"5":   http.StatusFailedDependency,
+
+	"2": http.StatusOK, // 250, 251, etc.
+
+	// Temporäre Fehler (Retry later)
+	"4":   http.StatusTooManyRequests, // 450, 452
 	"421": http.StatusServiceUnavailable,
-	"450": http.StatusServiceUnavailable,
-	"451": http.StatusServiceUnavailable,
-	"452": http.StatusPaymentRequired,
-	"500": http.StatusBadRequest,
-	"501": http.StatusBadRequest,
+
+	// Permanente Fehler (Client muss Änderungen vornehmen)
+	"5":   http.StatusBadRequest, // 500, 501, etc.
 	"502": http.StatusBadGateway,
 	"503": http.StatusServiceUnavailable,
-	"504": http.StatusGatewayTimeout,
-	"550": http.StatusNotFound,
-	"551": http.StatusNotFound,
-	"552": http.StatusPaymentRequired,
-	"553": http.StatusForbidden,
-	"554": http.StatusFailedDependency,
+	"550": http.StatusForbidden,           // "Mailbox unavailable"
+	"553": http.StatusForbidden,           // "Sender not allowed"
+	"554": http.StatusUnprocessableEntity, // Policy rejection (besser als 424)
 }
