@@ -32,7 +32,7 @@ func main() {
 }
 
 func watchPostfixLogs() {
-	file, err := os.Open("/var/log/mail.log")
+	file, err := os.Open("/data/mail.log")
 	if err != nil {
 		log.Fatal(err)
 	}
