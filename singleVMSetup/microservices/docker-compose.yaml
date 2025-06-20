@@ -4,7 +4,7 @@ services:
   go-api:
     build:
       context: .
-      dockerfile: ./go-api/Dockerfile
+      dockerfile: ./mailAPI/Dockerfile
     container_name: go-api
     restart: unless-stopped
     network_mode: "host"
