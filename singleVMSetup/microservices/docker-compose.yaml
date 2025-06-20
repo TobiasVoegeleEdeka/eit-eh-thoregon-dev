@@ -4,7 +4,7 @@ services:
   go-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./go-api/Dockerfile
     container_name: go-api
     restart: unless-stopped
     network_mode: "host"
