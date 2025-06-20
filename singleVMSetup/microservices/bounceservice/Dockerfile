@@ -1,9 +1,20 @@
-FROM golang:1.24-alpine
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
-COPY . .
 
+COPY bounceservice/go.mod ./
 RUN go mod download
-RUN go build -o bounce-service .
+
+COPY bounceservice/ ./
+
+RUN go build -o /bounce-service .
+
+
+FROM alpine:latest
+
+WORKDIR /app
+
+
+COPY --from=builder /bounce-service .
 
 CMD ["./bounce-service"]
