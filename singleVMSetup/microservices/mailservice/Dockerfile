@@ -4,7 +4,7 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 # Kopiere alle notwendigen Dateien
-COPY mailservice/go.mod mailservice/go.sum ./
+COPY mailservice/go.mod ./
 RUN go mod download
 
 COPY mailservice/ ./
