@@ -52,7 +52,11 @@ func (h *Handler) SendEmail(w http.ResponseWriter, r *http.Request) {
 
 		// Spezifischer HTTP-Statuscode basierend auf SMTP-Code
 		statusCode := http.StatusInternalServerError
-		if strings.HasPrefix(result.SMTPCode, "4") {
+		if code, ok := SMTPStatusCodes[result.SMTPCode]; ok {
+			statusCode = code
+		} else if strings.HasPrefix(result.SMTPCode, "2") {
+			statusCode = http.StatusOK
+		} else if strings.HasPrefix(result.SMTPCode, "4") {
 			statusCode = http.StatusTooManyRequests
 		} else if strings.HasPrefix(result.SMTPCode, "5") {
 			statusCode = http.StatusFailedDependency

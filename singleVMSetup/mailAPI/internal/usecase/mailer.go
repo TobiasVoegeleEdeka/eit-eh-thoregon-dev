@@ -14,7 +14,6 @@ func NewMailer(client *smtp.Client) *Mailer {
 	return &Mailer{smtpClient: client}
 }
 
-// SendResult enthält erweiterte Statusinformationen
 type SendResult struct {
 	Success      bool
 	SMTPCode     string
@@ -26,19 +25,16 @@ type SendResult struct {
 func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 	result := &SendResult{}
 
-	// 1. Validierung
 	if err := validateRequest(req); err != nil {
 		result.Error = fmt.Errorf("validation failed: %w", err)
 		return result, result.Error
 	}
 
-	// 2. E-Mail senden
 	smtpResult, err := m.smtpClient.Send(req.To, req.Subject, req.Body)
 	if err != nil {
 		result.Success = false
 		result.Error = fmt.Errorf("smtp delivery failed: %w", err)
 
-		// Falls SMTP-Result vorhanden (kann nil sein bei Verbindungsfehlern)
 		if smtpResult != nil {
 			result.SMTPCode = smtpResult.SMTPCode
 			result.Message = smtpResult.Message
@@ -48,7 +44,6 @@ func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 		return result, result.Error
 	}
 
-	// 3. Erfolgsfall
 	result.Success = true
 	result.SMTPCode = smtpResult.SMTPCode
 	result.Message = smtpResult.Message
