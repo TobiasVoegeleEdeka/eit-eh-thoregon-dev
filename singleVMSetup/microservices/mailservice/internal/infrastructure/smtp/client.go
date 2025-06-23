@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"mailservice/internal/config"
+	"mailservice/internal/domain" // <-- Hinzugefügter Import
 	"mailservice/internal/infrastructure/logging"
 	"net"
 	"net/smtp"
@@ -35,10 +36,12 @@ func NewClient(cfg *config.SMTPConfig, logger logging.Logger, connLogger logging
 	}
 }
 
-func (c *Client) Send(to, subject, body string) (*DeliveryResult, error) {
+// Geändert: Die Methode akzeptiert jetzt das domain.Email Objekt
+func (c *Client) Send(email *domain.Email) (*DeliveryResult, error) {
 	result := &DeliveryResult{}
 	startTime := time.Now()
-	c.logger.Printf("Starting email delivery to %s", to)
+	// Geändert: Logger verwendet den Empfänger aus dem Email-Objekt
+	c.logger.Printf("Starting email delivery to %s", email.To)
 	defer func() {
 		c.logger.Printf("Email delivery completed (duration: %v)", time.Since(startTime))
 	}()
@@ -77,13 +80,13 @@ func (c *Client) Send(to, subject, body string) (*DeliveryResult, error) {
 		}
 	}
 
-	// 4. Absender setzen
-	if err := client.Mail(c.config.DefaultSender); err != nil {
+	// 4. Absender setzen (Geändert: wird aus dem Email-Objekt genommen)
+	if err := client.Mail(email.From); err != nil {
 		return c.handleSMTPError(client, result, "MAIL FROM failed: %w", err)
 	}
 
-	// 5. Empfänger setzen
-	if err := client.Rcpt(to); err != nil {
+	// 5. Empfänger setzen (Geändert: wird aus dem Email-Objekt genommen)
+	if err := client.Rcpt(email.To); err != nil {
 		return c.handleSMTPError(client, result, "RCPT TO failed: %w", err)
 	}
 
@@ -93,8 +96,9 @@ func (c *Client) Send(to, subject, body string) (*DeliveryResult, error) {
 		return c.handleSMTPError(client, result, "DATA command failed: %w", err)
 	}
 
-	message := fmt.Sprintf("To: %s\r\nFrom: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s\r\n",
-		to, c.config.DefaultSender, subject, body)
+	// Geändert: Die vollständige Nachricht wird von der email.String() Methode erstellt.
+	// Das manuelle Zusammensetzen der Nachricht entfällt.
+	message := email.String()
 
 	if _, err := fmt.Fprint(wc, message); err != nil {
 		wc.Close()
@@ -131,7 +135,6 @@ func (c *Client) handleSMTPError(client *smtp.Client, result *DeliveryResult, fo
 	return result, fmt.Errorf(format, err)
 }
 
-// extractBounceReason analysiert die Fehlermeldung
 func (c *Client) extractBounceReason(response string) string {
 	switch {
 	case strings.Contains(response, "550"):

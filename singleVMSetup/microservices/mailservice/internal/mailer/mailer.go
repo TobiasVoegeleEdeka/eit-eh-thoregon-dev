@@ -1,4 +1,3 @@
-// mailer/mailer.go
 package mailer
 
 import (
@@ -35,11 +34,11 @@ func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 		return result, result.Error
 	}
 
-	// Create Email object (for potential future use)
+	// Das Email-Objekt wird wie zuvor erstellt
 	email := domain.NewEmail(m.fromEmail, req.To, req.Subject, req.Body)
 
-	// Call SMTP client with individual parameters (maintaining current interface)
-	smtpResult, err := m.smtpClient.Send(email.To, email.Subject, email.Body)
+	// Geändert: Die Send-Methode wird jetzt mit dem gesamten Email-Objekt aufgerufen.
+	smtpResult, err := m.smtpClient.Send(email)
 	if err != nil {
 		result.Success = false
 		result.Error = fmt.Errorf("smtp delivery failed: %w", err)
