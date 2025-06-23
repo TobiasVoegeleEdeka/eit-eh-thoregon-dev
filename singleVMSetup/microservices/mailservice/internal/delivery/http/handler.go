@@ -3,13 +3,13 @@ package http
 import (
 	"encoding/json"
 	"mailservice/internal/domain"
-	"mailservice/internal/usecase"
+	"mailservice/internal/mailer"
 	"net/http"
 	"strings"
 )
 
 type Handler struct {
-	mailer *usecase.Mailer
+	mailer *mailer.Mailer
 	logger Logger
 }
 
@@ -26,7 +26,7 @@ type EnhancedResponse struct {
 	Error        string `json:"error,omitempty"`
 }
 
-func NewHandler(mailer *usecase.Mailer, logger Logger) *Handler {
+func NewHandler(mailer *mailer.Mailer, logger Logger) *Handler {
 	return &Handler{mailer: mailer, logger: logger}
 }
 
