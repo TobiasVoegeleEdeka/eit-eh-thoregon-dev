@@ -1,0 +1,39 @@
+---
+- name: Create and manage Ansible Vault
+  hosts: localhost
+  connection: local
+  vars:
+    vault_file: "./vault.yml"
+    vault_secrets:
+      vault_postgres_password: "secure_db_password123"
+      vault_restricted_password: "restricted_user_pass456"
+  
+  tasks:
+    - name: Ensure vault directory exists
+      ansible.builtin.file:
+        path: "{{ vault_file | dirname }}"
+        state: directory
+        mode: '0700'
+
+    - name: Create encrypted vault file
+      ansible.builtin.shell: |
+        echo "---" > "{{ vault_file }}"
+        {% for key,value in vault_secrets.items() %}
+        ansible-vault encrypt_string "{{ value }}" --name "{{ key }}" >> "{{ vault_file }}"
+        {% endfor %}
+      args:
+        executable: /bin/bash
+      environment:
+        ANSIBLE_VAULT_PASSWORD_FILE: "./vault_pass"
+      register: vault_creation
+      changed_when: "'Encryption successful' in vault_creation.stdout"
+
+    - name: Validate vault file
+      ansible.builtin.stat:
+        path: "{{ vault_file }}"
+      register: vault_stat
+
+    - name: Show vault creation status
+      ansible.builtin.debug:
+        msg: "Vault file created successfully at {{ vault_file }}"
+      when: vault_stat.stat.exists

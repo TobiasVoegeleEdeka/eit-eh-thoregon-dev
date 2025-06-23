@@ -1,0 +1,140 @@
+---
+- name: Run Liquibase Migrations for PostgreSQL
+  hosts: database_servers
+  become: true
+  vars_files:
+    - ../ansibleVault/vault.yml  # Path to encrypted vault file
+  vars:
+    container_name: "mein_postgres"  # Matches PostgreSQL container name
+    postgres_db: "postgres"
+    postgres_user: "postgres"
+    postgres_password: "geheim"
+    project_dir: /opt/postgres  # Base directory for Liquibase files
+    docker_network: "bridge"  # Use the standard Docker bridge network
+    ansible_python_interpreter: "/usr/bin/python3.10"  # Explicit Python interpreter
+    ansible_ssh_extra_args: "-o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -o ConnectTimeout=10"  # Disable SSH multiplexing
+
+  tasks:
+    - name: Ensure Docker is running
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      register: docker_service
+      failed_when: docker_service is failed
+
+    - name: Install Python and PostgreSQL dependencies
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+          - python3-dev
+          - libpq-dev
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Install psycopg2 for PostgreSQL
+      ansible.builtin.pip:
+        name: psycopg2-binary
+        state: present
+        executable: pip3
+      register: pip_install
+      retries: 3
+      delay: 5
+      until: pip_install is succeeded
+
+    - name: Create Docker network if it does not exist
+      community.docker.docker_network:
+        name: "{{ docker_network }}"
+        driver: bridge
+        state: present
+      register: network_result
+
+    - name: Ensure PostgreSQL container is running and on bridge network
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+        networks:
+          - name: "{{ docker_network }}"
+        published_ports:
+          - "5432:5432"  # Expose PostgreSQL port to host
+      register: postgres_container
+
+    - name: Create Liquibase directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ project_dir }}/liquibase"
+        - "{{ project_dir }}/liquibase/changelogs"
+
+    - name: Copy Liquibase master.xml
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/liquibase/changelogs/master.xml"
+        dest: "{{ project_dir }}/liquibase/changelogs/master.xml"
+        mode: "0644"
+
+    - name: Copy Liquibase V1_create_email_table.xml
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/liquibase/changelogs/V1_create_email_table.xml"
+        dest: "{{ project_dir }}/liquibase/changelogs/V1_create_email_table.xml"
+        mode: "0644"
+
+    - name: Wait for PostgreSQL to be ready
+      community.docker.docker_container_exec:
+        container: "{{ container_name }}"
+        command: "pg_isready -U {{ postgres_user }} -d {{ postgres_db }} -h localhost -t 30"
+      register: pg_ready
+      until: pg_ready is not failed
+      retries: 10
+      delay: 5
+      ignore_errors: true
+
+    - name: Run Liquibase migration
+      community.docker.docker_container:
+        name: liquibase-migration
+        image: liquibase/liquibase:4.29.2
+        volumes:
+          - "{{ project_dir }}/liquibase/changelogs:/liquibase/changelogs"
+        command: >
+          update
+          --changeLogFile=/liquibase/changelogs/master.xml
+          --url=jdbc:postgresql://{{ container_name }}:5432/{{ postgres_db }}
+          --username={{ postgres_user }}
+          --password={{ postgres_password }}
+        auto_remove: true
+        networks:
+          - name: "{{ docker_network }}"
+        output_logs: true
+      register: liquibase_result
+
+    - name: Check Liquibase migration result
+      ansible.builtin.fail:
+        msg: "Liquibase migration failed: {{ liquibase_result.container.Output | default('No output available') }}"
+      when: liquibase_result is failed
+
+    - name: Verify database tables
+      block:
+        - name: Check if emails table exists
+          community.postgresql.postgresql_query:
+            login_user: "{{ postgres_user }}"
+            login_password: "{{ postgres_password }}"
+            db: "{{ postgres_db }}"
+            query: |
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'emails'
+              )
+            login_host: "localhost"  # Use localhost since port is exposed to host
+            port: 5432
+            ssl_mode: prefer
+          register: table_exists
+          retries: 3
+          delay: 5
+          until: table_exists is succeeded
+
+        - name: Show table status
+          ansible.builtin.debug:
+            msg: "Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
+      when: liquibase_result is succeeded

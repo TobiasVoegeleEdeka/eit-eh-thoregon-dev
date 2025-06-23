@@ -1,0 +1,247 @@
+# ---
+# - name: Deploy PostgreSQL with Liquibase
+#   hosts: database_servers
+#   become: yes
+#   vars_files:
+#     - ../ansibleVault/vault.yml
+
+#   vars:
+#     db_name: "{{ vault_postgres_db_name }}"
+#     db_user: "{{ vault_postgres_user }}"
+#     db_password: "{{ vault_postgres_password }}"
+#     container_name: "postgres-db"
+#     postgres_port: "5432"
+
+#   tasks:
+#     # --- 1. Install Docker prerequisites ---
+#     - name: Install prerequisite packages
+#       ansible.builtin.apt:
+#         name:
+#           - apt-transport-https
+#           - ca-certificates
+#           - curl
+#           - gnupg
+#           - lsb-release
+#           - python3-pip
+#         state: present
+#         update_cache: yes
+
+#     # --- 2. Docker Installation ---
+#     - name: Create directory for Docker's GPG key
+#       ansible.builtin.file:
+#         path: /etc/apt/keyrings
+#         state: directory
+#         mode: '0755'
+
+#     - name: Remove old Docker GPG key if exists
+#       ansible.builtin.file:
+#         path: /etc/apt/keyrings/docker.gpg
+#         state: absent
+
+#     - name: Download Docker's GPG key
+#       ansible.builtin.get_url:
+#         url: https://download.docker.com/linux/ubuntu/gpg
+#         dest: /tmp/docker.asc
+#         mode: '0644'
+#         force: yes
+
+#     - name: De-armor the GPG key
+#       ansible.builtin.command:
+#         cmd: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.asc
+#       args:
+#         creates: /etc/apt/keyrings/docker.gpg
+
+#     - name: Clean up temporary GPG key
+#       ansible.builtin.file:
+#         path: /tmp/docker.asc
+#         state: absent
+
+#     - name: Add Docker repository
+#       ansible.builtin.apt_repository:
+#         repo: >
+#           deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg]
+#           https://download.docker.com/linux/ubuntu
+#           {{ ansible_distribution_release }} stable
+#         state: present
+#         filename: docker
+
+#     - name: Install Docker components
+#       ansible.builtin.apt:
+#         name:
+#           - docker-ce
+#           - docker-ce-cli
+#           - containerd.io
+#           - docker-compose-plugin
+#         state: present
+#         update_cache: yes
+
+#     # --- 3. Python dependencies ---
+#     - name: Install Docker SDK for Python
+#       ansible.builtin.pip:
+#         name: docker
+#         state: present
+
+#     # --- 4. Prepare PostgreSQL deployment ---
+#     - name: Create postgres directory
+#       ansible.builtin.file:
+#         path: /opt/postgres
+#         state: directory
+#         mode: '0755'
+
+#     - name: Create liquibase directory structure
+#       ansible.builtin.file:
+#         path: "{{ item }}"
+#         state: directory
+#         mode: '0755'
+#       loop:
+#         - /opt/postgres/liquibase
+#         - /opt/postgres/liquibase/changelogs
+
+#     # --- 5. Copy Liquibase files ---
+#     - name: Copy master.xml
+#       ansible.builtin.copy:
+#         src: "{{ playbook_dir }}/files/liquibase/changelogs/master.xml"
+#         dest: /opt/postgres/liquibase/changelogs/master.xml
+#         mode: '0644'
+
+#     - name: Copy V1_create_email_table.xml
+#       ansible.builtin.copy:
+#         src: "{{ playbook_dir }}/files/liquibase/changelogs/V1_create_email_table.xml"
+#         dest: /opt/postgres/liquibase/changelogs/V1_create_email_table.xml
+#         mode: '0644'
+
+#     # --- 6. Clean up existing containers ---
+#     - name: Remove existing container
+#       community.docker.docker_container:
+#         name: "{{ container_name }}"
+#         state: absent
+#         force_kill: yes
+#         cleanup: yes
+#       ignore_errors: yes
+
+#     - name: Ensure compose stack is down
+#       community.docker.docker_compose_v2:
+#         project_src: /opt/postgres
+#         state: absent
+#       ignore_errors: yes
+
+#     # --- 7. Deploy new stack ---
+#     - name: Deploy docker-compose template
+#       ansible.builtin.template:
+#         src: templates/docker-compose-postgres.yml.j2
+#         dest: /opt/postgres/docker-compose.yml
+#         mode: '0644'
+
+#     - name: Start PostgreSQL container
+#       community.docker.docker_compose_v2:
+#         project_src: /opt/postgres
+#         state: present
+#       register: compose_output
+
+#     # --- 8. Wait for PostgreSQL to be ready ---
+#     - name: Ensure PostgreSQL container is running
+#       community.docker.docker_container_info:
+#         name: "{{ container_name }}"
+#       register: container_info
+#       until: container_info.container and container_info.container.State.Running
+#       retries: 5
+#       delay: 5
+
+#     - name: Wait for PostgreSQL to be ready
+#       community.docker.docker_container_exec:
+#         container: "{{ container_name }}"
+#         command: "pg_isready -U {{ db_user }} -d {{ db_name }} -h localhost -t 30"
+#       register: pg_ready
+#       until: pg_ready is not failed
+#       retries: 10
+#       delay: 5
+#       ignore_errors: yes
+
+#     # --- 9. Run Liquibase migration ---
+#     - name: Run Liquibase migration
+#       community.docker.docker_container:
+#         name: liquibase-migration
+#         image: liquibase/liquibase
+#         volumes:
+#           - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
+#         command: >
+#           --changeLogFile=/liquibase/changelogs/master.xml
+#           --url=jdbc:postgresql://{{ container_name }}:5432/{{ db_name }}
+#           --username={{ db_user }}
+#           --password={{ db_password }}
+#           update
+#         auto_remove: true
+#       register: liquibase_result
+
+#     - name: Check Liquibase result
+#       ansible.builtin.fail:
+#         msg: "Liquibase migration failed"
+#       when: liquibase_result is failed
+
+#     # --- 10. Verify tables ---
+#     - name: Verify database tables
+#       block:
+#         - name: Check if emails table exists
+#           community.postgresql.postgresql_query:
+#             login_user: "{{ db_user }}"
+#             login_password: "{{ db_password }}"
+#             db: "{{ db_name }}"
+#             query: |
+#               SELECT EXISTS (
+#                 SELECT FROM information_schema.tables 
+#                 WHERE table_name = 'emails'
+#               );
+#           register: table_exists
+#           retries: 3
+#           delay: 5
+#           until: table_exists is succeeded
+
+#         - name: Show table status
+#           ansible.builtin.debug:
+#             msg: "Emails table exists: {{ table_exists.query_result[0]['exists'] }}"
+#       when: liquibase_result is succeeded
+
+# deploy_postgres.yml - V4, mit 'down' vor 'up'
+---
+- name: Erstelle PostgreSQL Container
+  hosts: database_servers
+  become: true
+  vars:
+    container_name: "mein_postgres"
+    postgres_image: "postgres:15"  
+    postgres_password: "geheim"    # in Produktion bitte verschlüsseln!
+    postgres_port: "5432:5432"
+    postgres_volume: "pgdata:/var/lib/postgresql/data"
+    postgres_user: "postgres"     # Standard-User
+
+  tasks:
+    - name: PostgreSQL Container erstellen
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ postgres_image }}"
+        state: started
+        restart: true
+        env:
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_USER: "{{ postgres_user }}"
+        ports:
+          - "{{ postgres_port }}"
+        volumes:
+          - "{{ postgres_volume }}"
+        pull: true  
+
+    - name: Container Status überprüfen
+      community.docker.docker_container_info:
+        name: "{{ container_name }}"
+      register: container_info
+
+    - name: Zeige Verbindungsinformationen
+      ansible.builtin.debug:
+        msg: |
+          PostgreSQL Container erfolgreich gestartet!
+          Host: {{ inventory_hostname }}
+          Port: 5432
+          User: {{ postgres_user }}
+          Password: {{ postgres_password }}
+          Volumes: {{ postgres_volume }}
+          Status: {{ container_info.container.State.Status }}

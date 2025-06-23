@@ -1,0 +1,50 @@
+{# version: '3.8'  # Remove if using compose v2
+
+services:
+  postgres-db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: {{ db_name }}
+      POSTGRES_USER: {{ db_user }}
+      POSTGRES_PASSWORD: {{ db_password }}
+    ports:
+      - "{{ postgres_port }}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  liquibase:
+    image: liquibase/liquibase
+    depends_on:
+      - postgres-db
+    volumes:
+      - /opt/postgres/liquibase/changelogs:/liquibase/changelogs
+    command: >
+      --changeLogFile=/liquibase/changelogs/master.xml
+      --url=jdbc:postgresql://postgres-db:5432/{{ db_name }}
+      --username={{ db_user }}
+      --password={{ db_password }}
+      update
+
+volumes:
+  postgres_data: #}
+
+services:
+  postgres-db:
+    image: postgres:13
+    container_name: postgres-db-test
+    environment:
+      POSTGRES_DB: {{ db_name }}
+      POSTGRES_USER: {{ db_user }}
+      POSTGRES_PASSWORD: {{ db_password }}
+    ports:
+      - "{{ postgres_port }}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ db_user }} -d {{ db_name }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
