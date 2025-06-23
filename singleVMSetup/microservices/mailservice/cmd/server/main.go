@@ -21,8 +21,8 @@ func main() {
 	// SMTP-Client erstellen
 	smtpClient := smtp.NewClient(smtpCfg, mainLogger, connLogger)
 
-	// Mailer initialisieren
-	mailer := mailer.NewMailer(smtpClient)
+	// Mailer initialisieren mit SMTP-Client und Absender-Adresse aus der Konfiguration
+	mailer := mailer.NewMailer(smtpClient, smtpCfg.DefaultSender)
 
 	// HTTP-Handler erstellen
 	handler := customhttp.NewHandler(mailer, mainLogger)
