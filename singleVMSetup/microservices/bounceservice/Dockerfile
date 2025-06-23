@@ -2,7 +2,7 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 
-COPY go.mod .
+COPY bounceservice/go.mod ./
 
 RUN go mod download
 
