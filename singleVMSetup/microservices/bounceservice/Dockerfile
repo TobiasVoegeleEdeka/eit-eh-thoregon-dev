@@ -1,18 +1,20 @@
 FROM golang:1.24-alpine AS builder
-
 WORKDIR /app
 
-COPY bounceservice/go.mod  ./
+
+COPY go.mod .
+
 RUN go mod download
 
-COPY bounceservice/ ./
+COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-s -w" -o /bounceservice .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bounceservice ./cmd/server
 
 FROM alpine:latest
-
 WORKDIR /app
 
-COPY --from=builder /bounce-service-app .
+COPY --from=builder /bounceservice /app/bounceservice
+COPY --from=builder /app/data /app/data
 
-CMD ["./bounce-service-app"]
+EXPOSE 8081
+CMD ["/app/bounceservice"]
