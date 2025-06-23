@@ -42,12 +42,9 @@ func (b *Bouncer) Watch() {
 		}
 
 		if stat.Size() > lastKnownSize {
-			log.Printf("File has grown from %d to %d bytes. Reading new lines.", lastKnownSize, stat.Size())
 			b.processNewLines(lastKnownSize, stat.Size())
 			lastKnownSize = stat.Size()
 		} else if stat.Size() < lastKnownSize {
-
-			log.Printf("Log file shrunk from %d to %d bytes (likely rotated), resetting position", lastKnownSize, stat.Size())
 			lastKnownSize = 0
 		}
 	}
