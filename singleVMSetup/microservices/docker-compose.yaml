@@ -16,7 +16,7 @@ services:
 
   bounceservice:
         build:
-          context: .
+          context: ./bounceservice
           dockerfile: bounceservice/Dockerfile
         container_name: bounce-service-api
         restart: unless-stopped
