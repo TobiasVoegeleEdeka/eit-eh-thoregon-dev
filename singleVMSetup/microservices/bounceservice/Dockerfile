@@ -14,7 +14,7 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /bounceservice /app/bounceservice
-COPY --from=builder /app/data /app/data
+#COPY --from=builder /app/data /app/data
 
 EXPOSE 8081
 CMD ["/app/bounceservice"]
