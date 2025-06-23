@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bounceservice ./cmd/server .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bounceservice ./bounceservice/cmd/server
 
 FROM alpine:latest
 WORKDIR /app
