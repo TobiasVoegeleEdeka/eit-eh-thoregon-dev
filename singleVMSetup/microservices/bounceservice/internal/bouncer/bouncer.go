@@ -13,7 +13,7 @@ import (
 
 type Bouncer struct {
 	Bounces  []types.Bounce
-	mu       sync.Mutex
+	Mu       sync.Mutex
 	LogFile  string
 	OnBounce func(bounce types.Bounce)
 }
@@ -72,9 +72,9 @@ func (b *Bouncer) processNewLines(startPos, endPos int64) {
 		line := scanner.Text()
 		if strings.Contains(line, "status=bounced") {
 			bounce := parser.ParseBounceLine(line)
-			b.mu.Lock()
+			b.Mu.Lock()
 			b.Bounces = append(b.Bounces, bounce)
-			b.mu.Unlock()
+			b.Mu.Unlock()
 
 			if b.OnBounce != nil {
 				b.OnBounce(bounce)
