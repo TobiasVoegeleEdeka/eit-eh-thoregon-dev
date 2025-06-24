@@ -36,11 +36,10 @@ func NewClient(cfg *config.SMTPConfig, logger logging.Logger, connLogger logging
 	}
 }
 
-// Geändert: Die Methode akzeptiert jetzt das domain.Email Objekt
 func (c *Client) Send(email *domain.Email) (*DeliveryResult, error) {
 	result := &DeliveryResult{}
 	startTime := time.Now()
-	// Geändert: Logger verwendet den Empfänger aus dem Email-Objekt
+
 	c.logger.Printf("Starting email delivery to %s", email.To)
 	defer func() {
 		c.logger.Printf("Email delivery completed (duration: %v)", time.Since(startTime))
@@ -96,8 +95,6 @@ func (c *Client) Send(email *domain.Email) (*DeliveryResult, error) {
 		return c.handleSMTPError(client, result, "DATA command failed: %w", err)
 	}
 
-	// Geändert: Die vollständige Nachricht wird von der email.String() Methode erstellt.
-	// Das manuelle Zusammensetzen der Nachricht entfällt.
 	message := email.String()
 
 	if _, err := fmt.Fprint(wc, message); err != nil {

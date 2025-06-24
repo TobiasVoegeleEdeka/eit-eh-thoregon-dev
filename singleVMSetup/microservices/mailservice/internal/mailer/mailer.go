@@ -34,10 +34,8 @@ func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 		return result, result.Error
 	}
 
-	// Das Email-Objekt wird wie zuvor erstellt
 	email := domain.NewEmail(m.fromEmail, req.To, req.Subject, req.Body)
 
-	// Geändert: Die Send-Methode wird jetzt mit dem gesamten Email-Objekt aufgerufen.
 	smtpResult, err := m.smtpClient.Send(email)
 	if err != nil {
 		result.Success = false
