@@ -48,7 +48,7 @@ services:
     networks:
       - mail-network
 
-  # --- HIER IST DER NEUE NATS-SERVICE ---
+  # --- NATS MSG QUEUE ---
   nats:
     image: nats:2.10
     container_name: nats-server
@@ -60,7 +60,7 @@ services:
       - "8222:8222"  # HTTP-Port für Monitoring
     networks:
       - mail-network
-  # --- ENDE DES NEUEN NATS-SERVICE ---
+
 
 networks:
   mail-network:
