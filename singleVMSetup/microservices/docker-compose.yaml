@@ -6,7 +6,7 @@ services:
     container_name: go-api
     restart: unless-stopped
     depends_on:
-      - nats # Stellt sicher, dass NATS vor dem go-api gestartet wird
+      - nats 
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -24,7 +24,7 @@ services:
     container_name: bounce-service-api
     restart: unless-stopped
     depends_on:
-      - nats # Stellt sicher, dass NATS vor dem bounceservice gestartet wird
+      - nats 
     ports:
       - "8081:8081"
     volumes: 
