@@ -1,8 +1,8 @@
 services:
-
+ 
   mail-gateway:
     build:
-      context: ./mail-gateway
+      context: ./mail-gateway 
       dockerfile: Dockerfile
     container_name: mail-gateway-api
     restart: unless-stopped
@@ -16,9 +16,8 @@ services:
     networks:
       - mail-network
 
-
   nats:
-    image: nats:2.10
+    image: nats:2.10-alpine 
     container_name: nats-server
     command: "-js -m 8222" 
     restart: unless-stopped
