@@ -84,32 +84,28 @@ services:
       timeout: 5s
       retries: 10
 
-  liquibase:
-    image: liquibase/liquibase
+    liquibase:
+    build:
+      context: ./db
+      dockerfile: Dockerfile.liquibase
     profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./db/changelog:/liquibase/changelog
-    environment:
+      environment:
       - URL=jdbc:postgresql://postgres:5432/maildb
       - USERNAME=postgres
       - PASSWORD=postgres
       - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
     command: >
       bash -c "
-      echo 'Waiting for PostgreSQL to be ready...';
-      while ! pg_isready -h postgres -U postgres -d maildb -t 1; do sleep 1; done;
-      echo 'Checking for changelog updates...';
-      if [ ! -f /liquibase/lastrun ] || find /liquibase/changelog -newer /liquibase/lastrun | grep -q .; then
-        echo 'Running migrations...';
-        liquibase update;
-        touch /liquibase/lastrun;
-        echo 'Migrations completed';
-      else
-        echo 'No changes detected in changelog, skipping migration';
-      fi
+      echo 'Waiting for PostgreSQL...';
+      while ! pg_isready -h postgres -U postgres -d maildb -t 1; do
+        sleep 1;
+      done;
+      echo 'Running migrations...';
+      liquibase update;
+      echo 'Migrations completed';
       "
 
 networks:
