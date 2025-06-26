@@ -103,7 +103,7 @@ services:
     networks:
       - mail-network
     volumes:
-      - ./db/changelog:/migrations
+      - ./db-migrator/migrations:/app/migrations:ro
 
 networks:
   mail-network:
