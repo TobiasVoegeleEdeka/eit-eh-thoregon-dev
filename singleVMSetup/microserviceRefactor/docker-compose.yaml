@@ -88,7 +88,7 @@ services:
 
   liquibase:
     build:
-      context: ./db
+      context: ./liquibase
       dockerfile: Dockerfile
     profiles: ["tools"]
     depends_on:
