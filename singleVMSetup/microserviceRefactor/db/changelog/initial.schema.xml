@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <changeSet id="1" author="mail-agent">
+        <createTable tableName="sent_emails">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            
+         
+            <column name="message_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subject" type="VARCHAR(512)"/>
+            <column name="sender" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recipients" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cc_recipients" type="TEXT"/>
+            <column name="bcc_recipients" type="TEXT"/>
+            <column name="body" type="TEXT"/>
+            <column name="content_type" type="VARCHAR(100)"/>
+            <column name="sent_date" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            
+
+            <column name="attachments" type="JSONB"/>
+            
+        
+            <column name="app_id" type="VARCHAR(255)">
+                <constraints nullable="false" comment="ID der Azure App die die Mail gesendet hat"/>
+            </column>
+            <column name="azure_message_id" type="VARCHAR(255)" comment="ID von Azure Communication Service"/>
+            
+
+            <column name="delivery_status" type="VARCHAR(100)"/>
+            <column name="opened" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="opened_at" type="TIMESTAMPTZ"/>
+            <column name="click_count" type="INTEGER" defaultValueNumeric="0"/>
+        </createTable>
+
+        <createIndex tableName="sent_emails" indexName="idx_sent_emails_message_id">
+            <column name="message_id"/>
+        </createIndex>
+
+        <createIndex tableName="sent_emails" indexName="idx_sent_emails_app_id">
+            <column name="app_id"/>
+        </createIndex>
+
+        <createIndex tableName="sent_emails" indexName="idx_sent_emails_sent_date">
+            <column name="sent_date"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

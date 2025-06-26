@@ -79,6 +79,33 @@ services:
     networks:
       - mail-network
 
+  liquibase:
+    image: liquibase/liquibase
+    profiles: ["tools"] 
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db/changelog:/liquibase/changelog
+    environment:
+      - URL=jdbc:postgresql://postgres:5432/maildb
+      - USERNAME=postgres
+      - PASSWORD=postgres
+      - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
+    command: 
+      - bash
+      - -c
+      - |
+        # Warte auf Datenbank
+        while ! nc -z postgres 5432; do sleep 1; done
+        # Führe Liquibase nur aus wenn Changelog neuer als letzte Ausführung
+        if [ ! -f /liquibase/lastrun ] || [ /liquibase/changelog -nt /liquibase/lastrun ]; then
+          liquibase update
+          touch /liquibase/lastrun
+        else
+          echo "No changes detected in changelog, skipping migration"
+        fi
+
 networks:
   mail-network:
     driver: bridge
