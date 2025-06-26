@@ -87,13 +87,13 @@ services:
       retries: 10
 
   liquibase:
-    build:
-      context: ./liquibase
-      dockerfile: Dockerfile
+    image: liquibase/liquibase:4.23.1
     profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./db/changelog:/liquibase/changelog
     environment:
       - URL=jdbc:postgresql://postgres:5432/maildb
       - USERNAME=postgres
@@ -101,8 +101,8 @@ services:
       - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
     command: >
       bash -c "
-      echo 'Waiting for PostgreSQL...';
-      until pg_isready -h postgres -U postgres -d maildb -t 1; do
+      echo 'Waiting for PostgreSQL (JDBC check)...';
+      until liquibase --url='jdbc:postgresql://postgres:5432/maildb' --username=postgres --password=postgres --changeLogFile=/liquibase/changelog/master.xml validate >/dev/null 2>&1; do
         sleep 1;
       done;
       echo 'Running migrations...';

@@ -1,9 +1,8 @@
-FROM liquibase/liquibase
+FROM liquibase/liquibase:4.23.1
 
-# Install PostgreSQL client tools
-RUN apt-get update && \
-    apt-get install -y postgresql-client && \
-    rm -rf /var/lib/apt/lists/*
+USER root
+RUN microdnf install -y postgresql15 && \
+    microdnf clean all
+USER liquibase
 
-# Copy changelog files
 COPY changelog/ /liquibase/changelog/
