@@ -33,7 +33,22 @@ services:
       - POSTFIX_PORT=25
     networks:
       - mail-network
-  
+  bounceservice:
+    build:
+      context: ./bounceservice
+      dockerfile: Dockerfile
+    container_name: bounce-service-api
+    restart: unless-stopped
+    depends_on:
+      - nats 
+    ports:
+      - "8081:8081"
+    volumes: 
+      - /var/log/mail.log:/data/mail.log:ro
+    environment:
+      - NATS_URL=nats://nats:4222 
+    networks:
+      - mail-network
   nats:
     image: nats:2.10-alpine
     container_name: nats-server
