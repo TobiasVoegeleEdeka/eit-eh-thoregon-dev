@@ -89,7 +89,7 @@ services:
     liquibase:
     build:
       context: ./db
-      dockerfile: Dockerfile.liquibase
+      dockerfile: Dockerfile
     profiles: ["tools"]
     depends_on:
       postgres:
