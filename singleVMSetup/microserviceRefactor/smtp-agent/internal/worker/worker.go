@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	JobsStream    = "EMAIL_JOPcS"
+	JobsStream    = "EMAIL_JOPS"
 	JobsSubject   = "email.jobs.new"
 	PullBatchSize = 10
 	PullMaxWait   = 10 * time.Second
