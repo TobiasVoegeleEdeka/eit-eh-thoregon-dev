@@ -78,7 +78,6 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - mail-network
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d maildb"]
       interval: 5s
@@ -87,7 +86,7 @@ services:
 
   liquibase:
     image: liquibase/liquibase
-    profiles: ["tools"] 
+    profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,19 +97,20 @@ services:
       - USERNAME=postgres
       - PASSWORD=postgres
       - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
-    command: 
-      - bash
-      - -c
-      - |
-        # Warte auf Datenbank
-        while ! nc -z postgres 5432; do sleep 1; done
-        # Führe Liquibase nur aus wenn Changelog neuer als letzte Ausführung
-        if [ ! -f /liquibase/lastrun ] || [ /liquibase/changelog -nt /liquibase/lastrun ]; then
-          liquibase update
-          touch /liquibase/lastrun
-        else
-          echo "No changes detected in changelog, skipping migration"
-        fi
+    command: >
+      bash -c "
+      echo 'Waiting for PostgreSQL to be ready...';
+      while ! pg_isready -h postgres -U postgres -d maildb -t 1; do sleep 1; done;
+      echo 'Checking for changelog updates...';
+      if [ ! -f /liquibase/lastrun ] || find /liquibase/changelog -newer /liquibase/lastrun | grep -q .; then
+        echo 'Running migrations...';
+        liquibase update;
+        touch /liquibase/lastrun;
+        echo 'Migrations completed';
+      else
+        echo 'No changes detected in changelog, skipping migration';
+      fi
+      "
 
 networks:
   mail-network:
