@@ -94,21 +94,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      environment:
-        - URL=jdbc:postgresql://postgres:5432/maildb
-        - USERNAME=postgres
-        - PASSWORD=postgres
-        - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
-      command: >
-        bash -c "
-        echo 'Waiting for PostgreSQL...';
-        until pg_isready -h postgres -U postgres -d maildb -t 1; do
-          sleep 1;
-        done;
-        echo 'Running migrations...';
-        liquibase update;
-        echo 'Migrations completed';
-        "
+    environment:
+      - URL=jdbc:postgresql://postgres:5432/maildb
+      - USERNAME=postgres
+      - PASSWORD=postgres
+      - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
+    command: >
+      bash -c "
+      echo 'Waiting for PostgreSQL...';
+      until pg_isready -h postgres -U postgres -d maildb -t 1; do
+        sleep 1;
+      done;
+      echo 'Running migrations...';
+      liquibase update;
+      echo 'Migrations completed';
+      "
 
 networks:
   mail-network:
