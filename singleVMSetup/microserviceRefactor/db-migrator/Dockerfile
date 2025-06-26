@@ -1,16 +1,7 @@
-FROM golang:1.24-alpine AS builder
+FROM liquibase/liquibase:4.23.1
 
-WORKDIR /app
-COPY . .
-RUN go mod tidy
-RUN go build -o migrator .
+WORKDIR /liquibase
+COPY ./migrations /liquibase/changelog
 
-FROM alpine:latest
-
-WORKDIR /app
-COPY --from=builder /app/migrator /app/migrator
-COPY --from=builder /app/migrations /migrations
-
-RUN apk add --no-cache postgresql-client
-
-ENTRYPOINT ["/app/migrator"]
+ENTRYPOINT ["/liquibase/liquibase"]
+CMD ["update"]

@@ -87,23 +87,20 @@ services:
       retries: 10
 
   db-migrator:
-    build:
-      context: ./db-migrator
-      dockerfile: Dockerfile
+    image: liquibase/liquibase:4.23.1
     profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./db-migrator/migrations:/liquibase/changelog
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=maildb
+      - URL=jdbc:postgresql://postgres:5432/maildb
+      - USERNAME=postgres
+      - PASSWORD=postgres
+      - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
     networks:
       - mail-network
-    volumes:
-      - ./db-migrator/migrations:/app/migrations:ro
 
 networks:
   mail-network:
