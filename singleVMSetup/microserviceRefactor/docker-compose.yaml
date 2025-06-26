@@ -87,20 +87,21 @@ services:
       retries: 10
 
   db-migrator:
-    image: liquibase/liquibase:4.23.1
-    profiles: ["tools"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./db-migrator/migrations:/liquibase/changelog
-    environment:
-      - URL=jdbc:postgresql://postgres:5432/maildb
-      - USERNAME=postgres
-      - PASSWORD=postgres
-      - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
-    networks:
-      - mail-network
+  image: liquibase/liquibase:4.23.1
+  profiles: ["tools"]
+  depends_on:
+    postgres:
+      condition: service_healthy
+  volumes:
+    - ./db-migrator/migrations:/liquibase/changelog
+  environment:
+    - URL=jdbc:postgresql://postgres:5432/maildb
+    - USERNAME=postgres
+    - PASSWORD=postgres
+    - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
+    - LIQUIBASE_COMMAND=update
+  networks:
+    - mail-network
 
 networks:
   mail-network:
