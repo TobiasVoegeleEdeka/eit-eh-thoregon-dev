@@ -79,6 +79,12 @@ services:
     networks:
       - mail-network
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maildb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   liquibase:
     image: liquibase/liquibase
     profiles: ["tools"] 
