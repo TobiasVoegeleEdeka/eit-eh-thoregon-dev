@@ -98,7 +98,7 @@ services:
     - URL=jdbc:postgresql://postgres:5432/maildb
     - USERNAME=postgres
     - PASSWORD=postgres
-    - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
+    - CHANGE_LOG_FILE=changelog/master.xml
     - LIQUIBASE_COMMAND=update
   networks:
     - mail-network
