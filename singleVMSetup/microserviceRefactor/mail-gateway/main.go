@@ -53,7 +53,7 @@ func main() {
 
 	// --- HTTP-Server starten ---
 	// HTTP-Handler erstellen und NATS JetStream Context übergeben
-	handler := customhttp.NewHandler(js, mainLogger)
+	handler := customhttp.NewHandler(js, mainLogger, serverCfg.DefaultSenderEmail)
 
 	// Routen definieren
 	http.HandleFunc("/send-email", handler.SendEmailHandler)

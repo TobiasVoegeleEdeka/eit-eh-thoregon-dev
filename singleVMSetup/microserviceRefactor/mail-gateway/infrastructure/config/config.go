@@ -5,12 +5,14 @@ import (
 )
 
 type ServerConfig struct {
-	ListenPort string
+	ListenPort         string
+	DefaultSenderEmail string
 }
 
 func LoadConfig() *ServerConfig {
 	serverCfg := &ServerConfig{
-		ListenPort: getEnv("LISTEN_PORT", "8080"),
+		ListenPort:         getEnv("LISTEN_PORT", "8080"),
+		DefaultSenderEmail: getEnv("DEFAULT_SENDER_EMAIL", "noreply@fallback.com"),
 	}
 
 	return serverCfg

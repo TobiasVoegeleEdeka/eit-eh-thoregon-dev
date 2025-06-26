@@ -11,17 +11,17 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// Handler-Struktur hält Abhängigkeiten wie den NATS JetStream Context und den Logger.
 type Handler struct {
-	js     nats.JetStreamContext
-	logger logging.Logger
+	js            nats.JetStreamContext
+	logger        logging.Logger
+	defaultSender string
 }
 
-// NewHandler ist der Konstruktor für unseren Handler.
-func NewHandler(js nats.JetStreamContext, logger logging.Logger) *Handler {
+func NewHandler(js nats.JetStreamContext, logger logging.Logger, defaultSender string) *Handler {
 	return &Handler{
-		js:     js,
-		logger: logger,
+		js:            js,
+		logger:        logger,
+		defaultSender: defaultSender,
 	}
 }
 
@@ -46,8 +46,6 @@ func (h *Handler) SendEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	// --- Kernlogik: E-Mail-Objekt erstellen und an NATS übergeben ---
 
-	// Erstellen des vollständigen Email-Objekts.
-	// Die Header werden hier automatisch hinzugefügt.
 	fullEmail := &domain.Email{
 		From:    req.From,
 		To:      req.To,
@@ -62,7 +60,7 @@ func (h *Handler) SendEmailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fullEmail.From == "" {
-		fullEmail.From = "noreply@example.com"
+		fullEmail.From = h.defaultSender
 	}
 
 	h.logger.Printf("Neuer E-Mail-Auftrag erhalten. Message-ID: %s", fullEmail.Headers["Message-ID"])
