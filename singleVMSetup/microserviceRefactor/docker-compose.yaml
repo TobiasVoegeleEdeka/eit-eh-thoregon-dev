@@ -65,7 +65,7 @@ services:
       - mail-network
 
   postgres:
-    image: postgres:15
+    image: timescale/timescaledb:latest-pg15
     container_name: mail-postgres
     restart: unless-stopped
     ports:
