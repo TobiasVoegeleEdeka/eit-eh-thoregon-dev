@@ -86,29 +86,24 @@ services:
       timeout: 5s
       retries: 10
 
-  liquibase:
-    image: liquibase/liquibase:4.23.1
-    profiles: ["tools"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./db/changelog:/liquibase/changelog
-    environment:
-      - URL=jdbc:postgresql://postgres:5432/maildb
-      - USERNAME=postgres
-      - PASSWORD=postgres
-      - CHANGE_LOG_FILE=/liquibase/changelog/master.xml
-    command: >
-      bash -c "
-      echo 'Waiting for PostgreSQL (JDBC check)...';
-      until liquibase --url='jdbc:postgresql://postgres:5432/maildb' --username=postgres --password=postgres --changeLogFile=/liquibase/changelog/master.xml validate >/dev/null 2>&1; do
-        sleep 1;
-      done;
-      echo 'Running migrations...';
-      liquibase update;
-      echo 'Migrations completed';
-      "
+  db-migrator:
+  build:
+    context: ./db-migrator
+    dockerfile: Dockerfile
+  profiles: ["tools"]
+  depends_on:
+    postgres:
+      condition: service_healthy
+  environment:
+    - DB_HOST=postgres
+    - DB_PORT=5432
+    - DB_USER=postgres
+    - DB_PASSWORD=postgres
+    - DB_NAME=maildb
+  networks:
+    - mail-network
+  volumes:
+    - ./db/changelog:/migrations
 
 networks:
   mail-network:
