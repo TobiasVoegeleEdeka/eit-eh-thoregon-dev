@@ -1,5 +1,6 @@
-services:
+version: '3.8'  # Höhere Version für besseres Volume-Management
 
+services:
   mail-gateway:
     build:
       context: ./mail-gateway 
@@ -15,7 +16,6 @@ services:
       - nats 
     networks:
       - mail-network
-
 
   smtp-worker:
     build:
@@ -33,6 +33,7 @@ services:
       - POSTFIX_PORT=25
     networks:
       - mail-network
+
   bounceservice:
     build:
       context: ./bounceservice
@@ -49,6 +50,7 @@ services:
       - NATS_URL=nats://nats:4222 
     networks:
       - mail-network
+
   nats:
     image: nats:2.10-alpine
     container_name: nats-server
@@ -82,4 +84,5 @@ networks:
     driver: bridge
 
 volumes:
-  nats-storage: 
+  nats-storage: {}  
+  postgres-data: {} 
