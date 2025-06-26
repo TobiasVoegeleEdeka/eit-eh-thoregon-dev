@@ -38,9 +38,9 @@
             
         
             <column name="app_id" type="VARCHAR(255)">
-                <constraints nullable="false" comment="ID der Azure App die die Mail gesendet hat"/>
+                <constraints nullable="false" />
             </column>
-            <column name="azure_message_id" type="VARCHAR(255)" comment="ID von Azure Communication Service"/>
+            <column name="azure_message_id" type="VARCHAR(255)"/>
             
 
             <column name="delivery_status" type="VARCHAR(100)"/>
