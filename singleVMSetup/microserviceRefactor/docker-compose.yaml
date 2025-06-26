@@ -1,5 +1,3 @@
-version: '3.8'  # Höhere Version für besseres Volume-Management
-
 services:
   mail-gateway:
     build:

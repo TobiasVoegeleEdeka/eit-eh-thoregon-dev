@@ -20,7 +20,7 @@ func LoadSMTPConfigOnly() (*SMTPConfig, error) {
 		ConnectIP:     getEnv("POSTFIX_CONNECT_IP", "host.docker.internal"),
 		Port:          getEnv("POSTFIX_PORT", "25"),
 		TargetFQDN:    getEnv("POSTFIX_TARGET_FQDN", "localhost"),
-		DefaultSender: getEnv("DEFAULT_SENDER_EMAIL", "noreply@example.com"),
+		DefaultSender: getEnv("DEFAULT_SENDER_EMAIL", "admin@mail-service-vm.francecentral.cloudapp.azure.com"),
 	}
 	return smtpCfg, nil
 }
