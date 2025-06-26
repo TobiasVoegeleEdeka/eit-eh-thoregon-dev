@@ -6,7 +6,7 @@ import (
 	customhttp "mailservice/internal/delivery/http"
 	"mailservice/internal/infrastructure/logging"
 	"mailservice/internal/infrastructure/smtp"
-	"mailservice/internal/usecase"
+	"mailservice/internal/mailer"
 	"net/http"
 )
 
@@ -21,8 +21,8 @@ func main() {
 	// SMTP-Client erstellen
 	smtpClient := smtp.NewClient(smtpCfg, mainLogger, connLogger)
 
-	// Usecase initialisieren
-	mailer := usecase.NewMailer(smtpClient)
+	// Mailer initialisieren mit SMTP-Client und Absender-Adresse aus der Konfiguration
+	mailer := mailer.NewMailer(smtpClient, smtpCfg.DefaultSender)
 
 	// HTTP-Handler erstellen
 	handler := customhttp.NewHandler(mailer, mainLogger)

@@ -1,0 +1,70 @@
+services:
+
+  mail-gateway:
+    build:
+      context: ./mail-gateway 
+      dockerfile: Dockerfile
+    container_name: mail-gateway-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080" 
+    environment:
+      - LISTEN_PORT=8080
+      - NATS_URL=nats://nats:4222 
+    depends_on:
+      - nats 
+    networks:
+      - mail-network
+
+
+  smtp-worker:
+    build:
+      context: ./smtp-agent
+      dockerfile: Dockerfile
+    container_name: smtp-worker-agent
+    restart: unless-stopped
+    depends_on:
+      - nats
+    extra_hosts: 
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - POSTFIX_CONNECT_IP=host.docker.internal
+      - POSTFIX_PORT=25
+    networks:
+      - mail-network
+  bounceservice:
+    build:
+      context: ./bounceservice
+      dockerfile: Dockerfile
+    container_name: bounce-service-api
+    restart: unless-stopped
+    depends_on:
+      - nats 
+    ports:
+      - "8081:8081"
+    volumes: 
+      - /var/log/mail.log:/data/mail.log:ro
+    environment:
+      - NATS_URL=nats://nats:4222 
+    networks:
+      - mail-network
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-server
+    command: "-js -m 8222 -DV -sd /data"
+    restart: unless-stopped
+    ports:
+      - "4222:4222" 
+      - "8222:8222"  
+    volumes:
+      - nats-storage:/data 
+    networks:
+      - mail-network
+
+networks:
+  mail-network:
+    driver: bridge
+
+volumes:
+  nats-storage: 

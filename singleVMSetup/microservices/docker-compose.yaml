@@ -5,27 +5,34 @@ services:
       dockerfile: mailservice/Dockerfile
     container_name: go-api
     restart: unless-stopped
+    depends_on:
+      - nats 
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - POSTFIX_CONNECT_IP=host.docker.internal
       - POSTFIX_PORT=25
       - LISTEN_PORT=8080
+      - NATS_URL=nats://nats:4222 # Verbindungs-URL für den NATS-Service
     networks:
       - mail-network
 
   bounceservice:
-        build:
-          context: ./bounceservice
-          dockerfile: Dockerfile
-        container_name: bounce-service-api
-        restart: unless-stopped
-        ports:
-          - "8081:8081"
-        volumes: 
-          - /var/log/mail.log:/data/mail.log:ro
-        networks:
-          - mail-network
+    build:
+      context: ./bounceservice
+      dockerfile: Dockerfile
+    container_name: bounce-service-api
+    restart: unless-stopped
+    depends_on:
+      - nats 
+    ports:
+      - "8081:8081"
+    volumes: 
+      - /var/log/mail.log:/data/mail.log:ro
+    environment:
+      - NATS_URL=nats://nats:4222 # Verbindungs-URL für den NATS-Service
+    networks:
+      - mail-network
 
   nginx:
     image: nginx:1.24-alpine
@@ -41,6 +48,21 @@ services:
     networks:
       - mail-network
 
+  # --- NATS MSG QUEUE ---
+  nats:
+    image: nats:2.10
+    container_name: nats-server
+    # Der '-js' Befehl aktiviert die JetStream-Engine für persistente Nachrichten
+    command: "-js -m 8222" 
+    restart: unless-stopped
+    ports:
+      - "4222:4222"  # Port für Client-Verbindungen
+      - "8222:8222"  # HTTP-Port für Monitoring
+    networks:
+      - mail-network
+
+
 networks:
   mail-network:
     driver: bridge
+

@@ -1,4 +1,4 @@
-package usecase
+package mailer
 
 import (
 	"fmt"
@@ -8,10 +8,14 @@ import (
 
 type Mailer struct {
 	smtpClient *smtp.Client
+	fromEmail  string // Store default sender
 }
 
-func NewMailer(client *smtp.Client) *Mailer {
-	return &Mailer{smtpClient: client}
+func NewMailer(client *smtp.Client, fromEmail string) *Mailer {
+	return &Mailer{
+		smtpClient: client,
+		fromEmail:  fromEmail,
+	}
 }
 
 type SendResult struct {
@@ -30,7 +34,9 @@ func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 		return result, result.Error
 	}
 
-	smtpResult, err := m.smtpClient.Send(req.To, req.Subject, req.Body)
+	email := domain.NewEmail(m.fromEmail, req.To, req.Subject, req.Body)
+
+	smtpResult, err := m.smtpClient.Send(email)
 	if err != nil {
 		result.Success = false
 		result.Error = fmt.Errorf("smtp delivery failed: %w", err)
@@ -50,7 +56,7 @@ func (m *Mailer) SendEmail(req *domain.EmailRequest) (*SendResult, error) {
 	return result, nil
 }
 
-// Vereinfachte Version ohne erweitertes Result
+// Simplified version without extended result
 func (m *Mailer) SendEmailSimple(req *domain.EmailRequest) error {
 	_, err := m.SendEmail(req)
 	return err
