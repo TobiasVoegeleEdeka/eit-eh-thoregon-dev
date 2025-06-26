@@ -86,7 +86,7 @@ services:
       timeout: 5s
       retries: 10
 
-    liquibase:
+  liquibase:
     build:
       context: ./db
       dockerfile: Dockerfile
