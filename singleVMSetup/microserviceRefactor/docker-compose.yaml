@@ -86,7 +86,7 @@ services:
       timeout: 5s
       retries: 10
 
-    db-migrator:
+  db-migrator:
     build:
       context: ./db-migrator
       dockerfile: Dockerfile
@@ -94,15 +94,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      environment:
+    environment:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=maildb
-      networks:
+    networks:
       - mail-network
-      volumes:
+    volumes:
       - ./db/changelog:/migrations
 
 networks:
