@@ -18,5 +18,4 @@ services:
 
 networks:
   mail-network:
-    name: mail-network
     external: true
