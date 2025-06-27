@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <changeSet id="2" author="mail-agent">
+        <!-- Basis-Tabelle für Bounce-Logs -->
+        <createTable tableName="email_bounce_logs">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            
+            <column name="message_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="original_message_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="event_time" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="bounce_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+                <comment>Permanent/Transient</comment>
+            </column>
+            
+            <column name="bounce_subtype" type="VARCHAR(100)"/>
+            
+            <column name="recipient" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="sender" type="VARCHAR(255)"/>
+            
+            <column name="diagnostic_code" type="TEXT"/>
+            
+            <column name="status_code" type="VARCHAR(20)"/>
+            
+            <column name="reporting_mta" type="VARCHAR(255)"/>
+            
+            <column name="remote_mta" type="VARCHAR(255)"/>
+            
+            <column name="raw_message" type="TEXT"/>
+            
+            <column name="processed" type="BOOLEAN" defaultValueBoolean="false"/>
+            
+            <column name="app_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            SELECT create_hypertable(
+                'email_bounce_logs', 
+                'event_time',
+                chunk_time_interval => INTERVAL '1 week',
+                if_not_exists => TRUE
+            );
+        </sql>
+
+        <createIndex tableName="email_bounce_logs" indexName="idx_bounce_logs_message_id">
+            <column name="message_id"/>
+        </createIndex>
+
+        <createIndex tableName="email_bounce_logs" indexName="idx_bounce_logs_original_message_id">
+            <column name="original_message_id"/>
+        </createIndex>
+
+        <createIndex tableName="email_bounce_logs" indexName="idx_bounce_logs_event_time">
+            <column name="event_time"/>
+        </createIndex>
+
+        <createIndex tableName="email_bounce_logs" indexName="idx_bounce_logs_recipient">
+            <column name="recipient"/>
+        </createIndex>
+
+        <createIndex tableName="email_bounce_logs" indexName="idx_bounce_logs_app_id">
+            <column name="app_id"/>
+        </createIndex>
+
+
+        <sql>
+            ALTER TABLE email_bounce_logs SET (
+                timescaledb.compress,
+                timescaledb.compress_orderby = 'event_time DESC',
+                timescaledb.compress_segmentby = 'app_id, bounce_type'
+            );
+            
+            SELECT add_compression_policy('email_bounce_logs', INTERVAL '30 days');
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,93 @@
+@startuml Email-System-Architektur
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam nodesep 10
+skinparam ranksep 20
+
+' Farbdefinitionen
+skinparam class {
+    BackgroundColor<<Service>> #e1e1f7
+    BackgroundColor<<Infra>> #d4edda
+    BackgroundColor<<Future>> #f9f9f9
+    BorderColor #555555
+}
+
+' 1. Benutzer & Externe Systeme
+component "Client\n(z.B. curl/Test-Webseite)" as Client #white
+component "Postfix Mail Server\n(auf Host-Maschine)" as Postfix #white
+file "mail.log\n(/var/log/)" as MailLog
+
+' 2. Microservices
+component "mail-gateway\n(Annahme-API)" as MailGateway <<Service>>
+component "smtp-worker\n(Zustell-Agent)" as SMTPWorker <<Service>>
+component "bounceservice\n(Log-Prozessor)" as BounceService <<Service>>
+component "db-migrator\n(Liquibase Tools)" as DBMigrator <<Service>>
+
+' 3. Infrastruktur
+database "NATS JetStream\n(Message Broker)" as NATS <<Infra>>
+database "PostgreSQL/TimescaleDB\n(Datenbank)" as Postgres <<Infra>>
+
+' 4. Persistente Daten
+storage "nats-storage" as NatsStorage
+storage "postgres-data" as PgData
+storage "secrets/password.txt" as Secrets
+
+' 5. Zukünftige Komponenten
+component "Event-Consumer\n(z.B. go-api)" as EventConsumer <<Future>>
+
+' E-Mail Workflow
+Client -> MailGateway : 1. POST /send-email
+MailGateway -> NATS : 2. Veröffentlicht E-Mail-Job
+NATS -> SMTPWorker : 3. Holt E-Mail-Job ab
+SMTPWorker -> Postfix : 4. Übergibt via SMTP
+
+' Bounce Workflow
+Postfix -> MailLog : 5. Schreibt Log
+MailLog -> BounceService : 6. Liest Log
+BounceService -> NATS : 7. Veröffentlicht Bounce
+
+' Datenbank
+DBMigrator -> Postgres : Führt Migrationen aus
+NATS -> NatsStorage : Speichert Nachrichten
+Postgres -> PgData : Speichert Daten
+Postgres --> Secrets : Liest Secrets
+DBMigrator --> Secrets : Liest Secrets
+
+' Zukünftiger Pfad
+NATS -> EventConsumer : 8. Holt Status-Event
+EventConsumer -> Postgres : 9. Schreibt in DB
+
+' Gruppen
+cloud "Benutzer & Externe Systeme" {
+    Client
+    Postfix
+    MailLog
+}
+
+cloud "Microservices" {
+    MailGateway
+    SMTPWorker
+    BounceService
+    DBMigrator
+}
+
+cloud "Infrastruktur" {
+    NATS
+    Postgres
+}
+
+cloud "Persistente Daten" {
+    NatsStorage
+    PgData
+    Secrets
+}
+
+' Style für zukünftige Komponenten
+skinparam component<<Future>> {
+    BackgroundColor #f9f9f9
+    BorderColor #cccccc
+    BorderStyle dashed
+}
+
+@enduml

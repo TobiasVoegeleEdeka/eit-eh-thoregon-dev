@@ -5,5 +5,9 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
 
-    <include file="initial.schema.xml" relativeToChangelogFile="true"/>
+
+    <include file="db/changelog/changes/001_create_sent_emails_table.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/changes/002_create_email_bounce_logs_hypertable.xml" relativeToChangelogFile="true"/>
+ 
+    
 </databaseChangeLog>
