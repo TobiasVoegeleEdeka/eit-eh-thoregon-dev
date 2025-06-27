@@ -8,7 +8,7 @@ services:
       - URL=jdbc:postgresql://host.docker.internal:5432/maildb  # Connect via host
       - USERNAME=postgres
       - PASSWORD=postgres
-      - CHANGE_LOG_FILE=changelog/master.xml
+      - CHANGE_LOG_FILE=db-migrator/migrations/master.xml
       - LIQUIBASE_COMMAND=update
     extra_hosts:
       - "host.docker.internal:host-gateway"
