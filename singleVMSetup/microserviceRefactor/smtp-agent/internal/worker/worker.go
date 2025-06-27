@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"smtp-worker/domain"
+	"smtp-worker/infrastructure/config"
 	"smtp-worker/infrastructure/logging"
 	"smtp-worker/infrastructure/smtp"
 
@@ -13,12 +14,8 @@ import (
 )
 
 const (
-	JobsStream    = "EMAIL_JOPS"
-	JobsSubject   = "email.jobs.new"
-	PullBatchSize = 10
-	PullMaxWait   = 10 * time.Second
-	RetryDelay    = 5 * time.Second
-	WorkerCount   = 5
+	JobsStream  = "EMAIL_JOPS"
+	JobsSubject = "email.jobs.new"
 )
 
 type Worker struct {
@@ -26,23 +23,24 @@ type Worker struct {
 	smtpClient   *smtp.Client
 	logger       logging.Logger
 	jobChan      chan *nats.Msg
+	config       *config.WorkerConfig
 	wg           sync.WaitGroup
 	shutdownChan chan struct{}
 }
 
-func New(sub *nats.Subscription, smtpClient *smtp.Client, logger logging.Logger) *Worker {
+func New(sub *nats.Subscription, smtpClient *smtp.Client, logger logging.Logger, cfg *config.WorkerConfig) *Worker {
 	return &Worker{
 		subscription: sub,
 		smtpClient:   smtpClient,
 		logger:       logger,
-		jobChan:      make(chan *nats.Msg, 100),
+		config:       cfg,
+		jobChan:      make(chan *nats.Msg, cfg.PullBatchSize),
 		shutdownChan: make(chan struct{}),
 	}
 }
 
 func (w *Worker) Run() error {
-
-	for i := 0; i < WorkerCount; i++ {
+	for i := 0; i < w.config.WorkerCount; i++ {
 		w.wg.Add(1)
 		go w.worker()
 	}
@@ -65,13 +63,13 @@ func (w *Worker) fetchMessages() {
 		case <-w.shutdownChan:
 			return
 		default:
-			msgs, err := w.subscription.Fetch(PullBatchSize, nats.MaxWait(PullMaxWait))
+			msgs, err := w.subscription.Fetch(w.config.PullBatchSize, nats.MaxWait(w.config.PullMaxWait))
 			if err != nil {
 				if err == nats.ErrTimeout {
 					continue
 				}
 				w.logger.Printf("Fehler beim Abrufen von Nachrichten aus NATS: %v", err)
-				time.Sleep(RetryDelay)
+				time.Sleep(w.config.RetryDelay)
 				continue
 			}
 

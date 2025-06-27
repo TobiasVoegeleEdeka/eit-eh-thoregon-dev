@@ -33,6 +33,10 @@ services:
       - POSTFIX_CONNECT_IP=host.docker.internal
       - POSTFIX_PORT=25
       - DEFAULT_SENDER_EMAIL=admin@mail-service-vm.francecentral.cloudapp.azure.com
+      - WORKER_COUNT=5           # Anzahl der parallelen Worker-Goroutinen
+      - PULL_BATCH_SIZE=10       # Nachrichten pro NATS-Fetch
+      - PULL_MAX_WAIT_SECONDS=10 # Maximale Wartezeit auf Nachrichten in Sekunden
+      - RETRY_DELAY_SECONDS=5    # Wartezeit nach einem Fehler in Sekunden
     networks:
       - mail-network
 
