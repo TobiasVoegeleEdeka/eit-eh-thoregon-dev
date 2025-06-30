@@ -12,7 +12,7 @@ services:
     environment:
       - LISTEN_PORT=8080
       - NATS_URL=nats://nats:4222
-      - DEFAULT_SENDER_EMAIL=admin@mail-service-vm.francecentral.cloudapp.azure.com 
+      - DEFAULT_SENDER_EMAIL=hostmaster@mail.edeka-inforservice.duckdns.org 
     depends_on:
       - nats 
     networks:
