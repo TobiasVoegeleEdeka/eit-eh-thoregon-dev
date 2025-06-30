@@ -32,7 +32,7 @@ services:
       - NATS_URL=nats://nats:4222
       - POSTFIX_CONNECT_IP=host.docker.internal
       - POSTFIX_PORT=25
-      - DEFAULT_SENDER_EMAIL=admin@mail-service-vm.francecentral.cloudapp.azure.com
+      - DEFAULT_SENDER_EMAIL=hostmaster@mail.edeka-inforservice.duckdns.org
       - WORKER_COUNT=5           # Anzahl der parallelen Worker-Goroutinen
       - PULL_BATCH_SIZE=10       # Nachrichten pro NATS-Fetch
       - PULL_MAX_WAIT_SECONDS=10 # Maximale Wartezeit auf Nachrichten in Sekunden
