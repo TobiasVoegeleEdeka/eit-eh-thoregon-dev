@@ -12,7 +12,7 @@ type ServerConfig struct {
 func LoadConfig() *ServerConfig {
 	serverCfg := &ServerConfig{
 		ListenPort:         getEnv("LISTEN_PORT", "8080"),
-		DefaultSenderEmail: getEnv("DEFAULT_SENDER_EMAIL", "noreply@fallback.com"),
+		DefaultSenderEmail: getEnv("DEFAULT_SENDER_EMAIL", "hostmaster@mail.edeka-inforservice.duckdns.org"),
 	}
 
 	return serverCfg
