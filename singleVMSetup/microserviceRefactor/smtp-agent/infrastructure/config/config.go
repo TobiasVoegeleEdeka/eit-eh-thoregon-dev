@@ -29,7 +29,7 @@ func LoadSMTPAndWorkerConfig() (*SMTPConfig, *WorkerConfig) {
 		ConnectIP:     getEnv("POSTFIX_CONNECT_IP", "host.docker.internal"),
 		Port:          getEnv("POSTFIX_PORT", "25"),
 		TargetFQDN:    getEnv("POSTFIX_TARGET_FQDN", "localhost"),
-		DefaultSender: getEnv("DEFAULT_SENDER_EMAIL", "hostmaster@mail.edeka-inforservice.duckdns.org"),
+		DefaultSender: getEnv("DEFAULT_SENDER_EMAIL", "admin@mail-service-vm.francecentral.cloudapp.azure.com"),
 	}
 
 	workerCfg := &WorkerConfig{
