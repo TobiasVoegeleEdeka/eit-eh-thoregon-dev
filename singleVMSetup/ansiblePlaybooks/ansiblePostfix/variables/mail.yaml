@@ -1,63 +1,63 @@
-# # /variables/mail.yaml
-
-# # --- Server-Identität ---
-# # Der offizielle, technische FQDN Ihrer neuen Postfix-VM.
-# # Dieser wurde von Terraform generiert.
-# public_fqdn: "mail-service-vm.francecentral.cloudapp.azure.com"
-
-# # Die Hauptdomain des Servers, oft identisch mit public_fqdn.
-# main_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
-
-# # --- E-Mail-/Marken-Identität ---
-# # Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
-# # Für den Anfang ist es am einfachsten, hier den public_fqdn zu verwenden.
-# # Später können Sie dies auf eine eigene Domain ändern, für die Sie SPF/DKIM/DMARC kontrollieren.
-# sending_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
-
-# # Der interne FQDN oder Hostname der Postfix-VM, der für die generic map verwendet wird.
-# # {{ ansible_facts.fqdn }} im Template selbst ist oft die beste dynamische Lösung.
-# # Wenn Sie es hier definieren wollen, loggen Sie sich auf der Postfix-VM ein
-# # und führen Sie `hostname -f` aus, um den genauen Wert zu erhalten.
-# # Beispielhafter Platzhalter, basierend auf dem VM-Namen:
-# postfix_internal_fqdn_for_generic_map: "mail-service-vm.internal.cloudapp.net" # BITTE PRÜFEN & ANPASSEN
-
-# # --- Benutzerkonfiguration ---
-# # Der primäre administrative Benutzer auf der Postfix-VM,
-# # der auch System-Mails senden könnte (z.B. cron jobs).
-# mail_user: "azureadmin"
-
-# # Ihre E-Mail-Adresse für die Let's Encrypt Registrierung.
-# admin_email: "tobias.voegele@edeka.de"
-
-# # --- Absender-Umschreibungen ---
-# # Sorgt dafür, dass System-Mails (z.B. von root oder dem Admin-Benutzer)
-# # eine saubere Absenderadresse mit Ihrer sending_domain erhalten.
-# sender_canonical_mappings:
-#   - { key: 'root', value: 'noreply@{{ sending_domain }}' }
-#   - { key: 'azureadmin', value: 'admin@{{ sending_domain }}' } # Geändert von ansiblemin auf azureadmin
-#   # Fügen Sie hier weitere Mappings hinzu, falls nötig:
-#   # - { key: 'www-data', value: 'webmaster@{{ sending_domain }}' }
-
-# # /variables/mail.yaml
+# /variables/mail.yaml
 
 # --- Server-Identität ---
-public_fqdn: "mail.edeka-inforservice.duckdns.org"
-main_domain: "edeka-inforservice.duckdns.org"
+# Der offizielle, technische FQDN Ihrer neuen Postfix-VM.
+# Dieser wurde von Terraform generiert.
+public_fqdn: "mail-service-vm.francecentral.cloudapp.azure.com"
+
+# Die Hauptdomain des Servers, oft identisch mit public_fqdn.
+main_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
 
 # --- E-Mail-/Marken-Identität ---
-sending_domain: "edeka-inforservice.duckdns.org"
+# Die Domain, die in der "From:"-Adresse Ihrer E-Mails erscheinen soll.
+# Für den Anfang ist es am einfachsten, hier den public_fqdn zu verwenden.
+# Später können Sie dies auf eine eigene Domain ändern, für die Sie SPF/DKIM/DMARC kontrollieren.
+sending_domain: "mail-service-vm.francecentral.cloudapp.azure.com"
 
-# --- Interne Server-Konfiguration ---
-postfix_internal_fqdn_for_generic_map: "mail-service-vm.internal.cloudapp.net"
+# Der interne FQDN oder Hostname der Postfix-VM, der für die generic map verwendet wird.
+# {{ ansible_facts.fqdn }} im Template selbst ist oft die beste dynamische Lösung.
+# Wenn Sie es hier definieren wollen, loggen Sie sich auf der Postfix-VM ein
+# und führen Sie `hostname -f` aus, um den genauen Wert zu erhalten.
+# Beispielhafter Platzhalter, basierend auf dem VM-Namen:
+postfix_internal_fqdn_for_generic_map: "mail-service-vm.internal.cloudapp.net" # BITTE PRÜFEN & ANPASSEN
 
 # --- Benutzerkonfiguration ---
+# Der primäre administrative Benutzer auf der Postfix-VM,
+# der auch System-Mails senden könnte (z.B. cron jobs).
 mail_user: "azureadmin"
+
+# Ihre E-Mail-Adresse für die Let's Encrypt Registrierung.
 admin_email: "tobias.voegele@edeka.de"
 
 # --- Absender-Umschreibungen ---
+# Sorgt dafür, dass System-Mails (z.B. von root oder dem Admin-Benutzer)
+# eine saubere Absenderadresse mit Ihrer sending_domain erhalten.
 sender_canonical_mappings:
-  - { key: 'root', value: 'hostmaster@edeka-inforservice.duckdns.org' }
-  - { key: 'azureadmin', value: 'admin@edeka-inforservice.duckdns.org' }
-  - { key: 'postmaster', value: 'hostmaster@edeka-inforservice.duckdns.org' }
-  - { key: 'abuse', value: 'hostmaster@edeka-inforservice.duckdns.org' }
-  - { key: 'www-data', value: 'webmaster@edeka-inforservice.duckdns.org' }
+  - { key: 'root', value: 'noreply@{{ sending_domain }}' }
+  - { key: 'azureadmin', value: 'admin@{{ sending_domain }}' } # Geändert von ansiblemin auf azureadmin
+  # Fügen Sie hier weitere Mappings hinzu, falls nötig:
+  # - { key: 'www-data', value: 'webmaster@{{ sending_domain }}' }
+
+# /variables/mail.yaml
+
+# # --- Server-Identität ---
+# public_fqdn: "mail.edeka-inforservice.duckdns.org"
+# main_domain: "edeka-inforservice.duckdns.org"
+
+# # --- E-Mail-/Marken-Identität ---
+# sending_domain: "edeka-inforservice.duckdns.org"
+
+# # --- Interne Server-Konfiguration ---
+# postfix_internal_fqdn_for_generic_map: "mail-service-vm.internal.cloudapp.net"
+
+# # --- Benutzerkonfiguration ---
+# mail_user: "azureadmin"
+# admin_email: "tobias.voegele@edeka.de"
+
+# # --- Absender-Umschreibungen ---
+# sender_canonical_mappings:
+#   - { key: 'root', value: 'hostmaster@edeka-inforservice.duckdns.org' }
+#   - { key: 'azureadmin', value: 'admin@edeka-inforservice.duckdns.org' }
+#   - { key: 'postmaster', value: 'hostmaster@edeka-inforservice.duckdns.org' }
+#   - { key: 'abuse', value: 'hostmaster@edeka-inforservice.duckdns.org' }
+#   - { key: 'www-data', value: 'webmaster@edeka-inforservice.duckdns.org' }
