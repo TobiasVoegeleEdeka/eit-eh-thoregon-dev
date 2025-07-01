@@ -1,0 +1,27 @@
+services:
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"  # SMTP Port
+      - "8025:8025"  # Web UI
+    networks:
+      - mail-network
+
+  postfix:
+    image: catatnight/postfix
+    container_name: postfix
+    environment:
+      - maildomain=edeka-inforservice.duckdns.org
+      - smtp_user=user:password  # Optional für Auth
+      - relayhost=mailhog:1025
+    ports:
+      - "25:25"
+    depends_on:
+      - mailhog
+    networks:
+      - mail-network
+
+networks:
+  mail-network:
+    driver: bridge
