@@ -110,24 +110,43 @@
         var: postconf_output.stdout_lines
       when: postconf_output.stdout_lines is defined
 
+  
+
+- name: Install OpenDKIM
+  ansible.builtin.apt:
+    name:
+      - opendkim
+      - opendkim-tools
+    state: present
+  when: opendkim_install | default(false)
+
   handlers:
-    - name: Update Postfix sender_canonical map
-      ansible.builtin.command:
-        cmd: postmap /etc/postfix/sender_canonical
-      notify: Restart Postfix
+  - name: Update Postfix TLS policy
+    ansible.builtin.command:
+      cmd: postmap /etc/postfix/tls_policy
+    notify: Restart Postfix
 
-    - name: Update Postfix generic map
-      ansible.builtin.command:
-        cmd: postmap /etc/postfix/generic
-      notify: Restart Postfix
-    
+  - name: Configure OpenDKIM
+    ansible.builtin.template:
+      src: templates/opendkim.conf.j2
+      dest: /etc/opendkim.conf
+    notify: Restart OpenDKIM
 
-    - name: Validate Postfix Config 
-      ansible.builtin.command:
-        cmd: postfix check
-      changed_when: false
+- name: Configure TLS policy for EDEKA
+  ansible.builtin.copy:
+    dest: /etc/postfix/tls_policy
+    content: |
+      mailin.edeka.de may
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update Postfix TLS policy
 
-    - name: Restart Postfix
-      ansible.builtin.systemd:
-        name: postfix
-        state: restarted
+- name: Create OpenDKIM directories
+  ansible.builtin.file:
+    path: "/etc/opendkim/keys/{{ public_fqdn }}"
+    state: directory
+    owner: opendkim
+    group: opendkim
+    mode: '0750'
+  when: opendkim_install | default(false)

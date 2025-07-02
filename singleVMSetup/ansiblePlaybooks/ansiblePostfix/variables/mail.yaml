@@ -61,3 +61,15 @@ sender_canonical_mappings:
 #   - { key: 'postmaster', value: 'hostmaster@edeka-inforservice.duckdns.org' }
 #   - { key: 'abuse', value: 'hostmaster@edeka-inforservice.duckdns.org' }
 #   - { key: 'www-data', value: 'webmaster@edeka-inforservice.duckdns.org' }
+
+# SMTPUTF8 Settings
+smtputf8_enable: yes
+smtputf8_autodetect_classes: sendmail,verify,smtpd
+
+# Network Settings
+trusted_networks:
+  - 172.18.0.0/16
+  - 10.50.1.7/32
+
+# OpenDKIM Settings (optional)
+opendkim_install: false
