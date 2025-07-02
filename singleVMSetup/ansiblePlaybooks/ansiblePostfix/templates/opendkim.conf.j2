@@ -1,0 +1,32 @@
+mkdir -p templates
+cat > templates/opendkim.conf.j2 << 'EOF'
+# Basic OpenDKIM configuration
+Syslog                  yes
+SyslogSuccess           yes
+LogWhy                  yes
+
+# Socket configuration
+Socket                  inet:8891@localhost
+
+# Key and signing configuration
+KeyTable                /etc/opendkim/KeyTable
+SigningTable            /etc/opendkim/SigningTable
+ExternalIgnoreList      /etc/opendkim/TrustedHosts
+InternalHosts           /etc/opendkim/TrustedHosts
+
+# Cryptographic settings
+Canonicalization        relaxed/simple
+Mode                    sv
+SubDomains              no
+
+# Security settings
+UMask                   002
+UserID                  opendkim:opendkim
+
+# DNSSEC settings
+DNSTimeout              5
+SignatureAlgorithm      rsa-sha256
+
+# Always oversign From (sign using actual From and a null From to prevent malicious signatures)
+OversignHeaders         From
+EOF
