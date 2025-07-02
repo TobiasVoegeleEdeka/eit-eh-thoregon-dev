@@ -1,27 +1,26 @@
+version: '3.8'
+
 services:
   mailhog:
     image: mailhog/mailhog
-    container_name: mailhog
     ports:
-      - "1025:1025"  # SMTP Port
-      - "8025:8025"  # Web UI
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
     networks:
-      - mail-network
+      - mail-net
 
-  postfix:
-    image: catatnight/postfix
-    container_name: postfix
-    environment:
-      - maildomain=edeka-inforservice.duckdns.org
-      - smtp_user=user:password  # Optional für Auth
-      - relayhost=mailhog:1025
+  spamassassin:
+    image: instantlinux/spamassassin
     ports:
-      - "25:25"
-    depends_on:
-      - mailhog
+      - "783:783" # SpamAssassin Daemon
+    volumes:
+      - spam-data:/var/lib/spamassassin
     networks:
-      - mail-network
+      - mail-net
 
 networks:
-  mail-network:
+  mail-net:
     driver: bridge
+
+volumes:
+  spam-data:

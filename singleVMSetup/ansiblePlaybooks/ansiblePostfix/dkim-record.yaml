@@ -1,0 +1,120 @@
+---
+- name: Configure OpenDKIM for Postfix
+  hosts: mailserver
+  become: yes
+  vars_files:
+    - variables/mail.yaml
+
+  tasks:
+    - name: Install OpenDKIM and tools
+      ansible.builtin.apt:
+        name:
+          - opendkim
+          - opendkim-tools
+        state: present
+
+    - name: Create DKIM directory structure
+      ansible.builtin.file:
+        path: "/etc/opendkim/keys/{{ public_fqdn }}"
+        state: directory
+        owner: opendkim
+        group: opendkim
+        mode: '0750'
+
+    - name: Generate DKIM key pair
+      ansible.builtin.command:
+        cmd: "opendkim-genkey -b 2048 -d {{ public_fqdn }} -D /etc/opendkim/keys/{{ public_fqdn }} -s mail -v"
+        creates: "/etc/opendkim/keys/{{ public_fqdn }}/mail.private"
+      notify: Fix DKIM key permissions
+
+    - name: Configure OpenDKIM
+      ansible.builtin.template:
+        src: templates/opendkim.conf.j2
+        dest: /etc/opendkim.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart OpenDKIM
+
+    - name: Configure KeyTable
+      ansible.builtin.copy:
+        dest: /etc/opendkim/KeyTable
+        content: |
+          mail._domainkey.{{ public_fqdn }} {{ public_fqdn }}:mail:/etc/opendkim/keys/{{ public_fqdn }}/mail.private
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart OpenDKIM
+
+    - name: Configure SigningTable
+      ansible.builtin.copy:
+        dest: /etc/opendkim/SigningTable
+        content: |
+          *@{{ public_fqdn }} mail._domainkey.{{ public_fqdn }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart OpenDKIM
+
+    - name: Configure TrustedHosts
+      ansible.builtin.copy:
+        dest: /etc/opendkim/TrustedHosts
+        content: |
+          127.0.0.1
+          localhost
+          {{ postfix_internal_network | default('192.168.0.0/16') }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart OpenDKIM
+
+    - name: Update Postfix configuration for DKIM
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        line: "milter_default_action = accept"
+        state: present
+      notify: Restart Postfix
+
+    - name: Add DKIM milter to Postfix
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        line: "milter_protocol = 2"
+        state: present
+      notify: Restart Postfix
+
+    - name: Add DKIM socket to Postfix
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        line: "milter_mail_macros = i {mail_addr} {client_addr} {client_name} {auth_authen}"
+        state: present
+      notify: Restart Postfix
+
+    - name: Enable OpenDKIM service
+      ansible.builtin.systemd:
+        name: opendkim
+        enabled: yes
+        state: started
+
+    - name: Display DKIM DNS record
+      ansible.builtin.command:
+        cmd: "cat /etc/opendkim/keys/{{ public_fqdn }}/mail.txt"
+      register: dkim_record
+      changed_when: false
+
+    - name: Show DKIM DNS record
+      ansible.builtin.debug:
+        var: dkim_record.stdout
+
+  handlers:
+    - name: Fix DKIM key permissions
+      ansible.builtin.file:
+        path: "/etc/opendkim/keys/{{ public_fqdn }}/mail.private"
+        owner: opendkim
+        group: opendkim
+        mode: '0600'
+      notify: Restart OpenDKIM
+
+    - name: Restart OpenDKIM
+      ansible.builtin.systemd:
+        name: opendkim
+        state: restarted
