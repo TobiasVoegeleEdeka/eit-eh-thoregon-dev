@@ -51,7 +51,6 @@
     - name: Configure /etc/postfix/main.cf
       ansible.builtin.template:
         src: templates/main.cf.j2  
-                                   
         dest: /etc/postfix/main.cf
         owner: root
         group: root
@@ -67,7 +66,6 @@
         mode: '0600'
       notify: Update Postfix sender_canonical map
 
-   
     - name: Create/Update /etc/postfix/generic map file
       ansible.builtin.copy:
         dest: /etc/postfix/generic
@@ -80,15 +78,14 @@
         group: root
         mode: '0644'
       notify: Update Postfix generic map
-    # ### END OF NEW TASK ###
 
     - name: Update alias database
       ansible.builtin.command:
         cmd: newaliases
-      changed_when: false # newaliases doesn't indicate changes well via exit code
+      changed_when: false
       notify: Restart Postfix
 
-    - name: Check Postfix configuration (optional but recommended)
+    - name: Check Postfix configuration
       ansible.builtin.command:
         cmd: postfix check
       changed_when: false
@@ -99,7 +96,7 @@
         enabled: yes
         state: started
 
-    - name: Display Postfix effective configuration (optional debug)
+    - name: Display Postfix effective configuration
       ansible.builtin.command:
         cmd: postconf -n
       changed_when: false
@@ -110,43 +107,62 @@
         var: postconf_output.stdout_lines
       when: postconf_output.stdout_lines is defined
 
-  
+    # OpenDKIM tasks moved inside the main tasks section
+    - name: Install OpenDKIM
+      ansible.builtin.apt:
+        name:
+          - opendkim
+          - opendkim-tools
+        state: present
+      when: opendkim_install | default(false)
 
-- name: Install OpenDKIM
-  ansible.builtin.apt:
-    name:
-      - opendkim
-      - opendkim-tools
-    state: present
-  when: opendkim_install | default(false)
+    - name: Create OpenDKIM directories
+      ansible.builtin.file:
+        path: "/etc/opendkim/keys/{{ public_fqdn }}"
+        state: directory
+        owner: opendkim
+        group: opendkim
+        mode: '0750'
+      when: opendkim_install | default(false)
+
+    - name: Configure TLS policy for EDEKA
+      ansible.builtin.copy:
+        dest: /etc/postfix/tls_policy
+        content: |
+          mailin.edeka.de may
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Update Postfix TLS policy
 
   handlers:
-  - name: Update Postfix TLS policy
-    ansible.builtin.command:
-      cmd: postmap /etc/postfix/tls_policy
-    notify: Restart Postfix
+    - name: Update Postfix sender_canonical map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/sender_canonical
+      notify: Restart Postfix
 
-  - name: Configure OpenDKIM
-    ansible.builtin.template:
-      src: templates/opendkim.conf.j2
-      dest: /etc/opendkim.conf
-    notify: Restart OpenDKIM
+    - name: Update Postfix generic map
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/generic
+      notify: Restart Postfix
 
-- name: Configure TLS policy for EDEKA
-  ansible.builtin.copy:
-    dest: /etc/postfix/tls_policy
-    content: |
-      mailin.edeka.de may
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Update Postfix TLS policy
+    - name: Validate Postfix Config 
+      ansible.builtin.command:
+        cmd: postfix check
+      changed_when: false
 
-- name: Create OpenDKIM directories
-  ansible.builtin.file:
-    path: "/etc/opendkim/keys/{{ public_fqdn }}"
-    state: directory
-    owner: opendkim
-    group: opendkim
-    mode: '0750'
-  when: opendkim_install | default(false)
+    - name: Restart Postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
+
+    - name: Update Postfix TLS policy
+      ansible.builtin.command:
+        cmd: postmap /etc/postfix/tls_policy
+      notify: Restart Postfix
+
+    - name: Configure OpenDKIM
+      ansible.builtin.template:
+        src: templates/opendkim.conf.j2
+        dest: /etc/opendkim.conf
+      notify: Restart OpenDKIM
