@@ -5,67 +5,61 @@
 # Ansible Managed: {{ ansible_managed | comment }}
 # ==========================================================================
 
-# --- General & Identity Configuration ---
+# --- Core Identity ---
 myhostname = {{ public_fqdn }}
 myorigin = /etc/mailname
 mydomain = {{ main_domain }}
 
-# --- Address Rewriting ---
+# --- Address Handling ---
 masquerade_domains = $myhostname
-
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
 smtp_generic_maps = hash:/etc/postfix/generic
 
-# --- Destination & Network Configuration ---
-mydestination = $myhostname, localhost.{{ main_domain }}, localhost, localhost.localdomain
+# --- Network Configuration ---
+mydestination = $myhostname, localhost.{{ main_domain }}, localhost
 inet_interfaces = all
-
-mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.50.1.7/32 172.16.0.0/12 go-api
+mynetworks = 127.0.0.0/8 [::1]/128 {{ trusted_networks | default('10.0.0.0/8') }}
 relayhost =
 
-# --- Security & Recipient Restrictions ---
-smtpd_recipient_restrictions =
-    permit_mynetworks
-    permit_sasl_authenticated
-    reject_unauth_destination
+# --- EDEKA-Specific Fixes ---
+smtputf8_enable = no                     # Disable due to EDEKA's broken implementation
+disable_smtputf8 = yes                   # Force traditional encoding
+smtp_always_send_esmtp = yes             # Ensure ESMTP is used
+smtp_ignore_8bitmime_error = yes         # Handle 8BITMIME gracefully
+
+# --- Security Restrictions ---
+smtpd_recipient_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination,
+    reject_non_fqdn_sender,
+    reject_unknown_sender_domain
 
 # --- TLS Configuration ---
 smtpd_tls_cert_file = /etc/letsencrypt/live/{{ public_fqdn }}/fullchain.pem
 smtpd_tls_key_file = /etc/letsencrypt/live/{{ public_fqdn }}/privkey.pem
 smtpd_use_tls = yes
 smtpd_tls_security_level = encrypt
-smtp_tls_policy_maps = hash:/etc/postfix/tls_policy
+smtp_tls_security_level = may            # More compatible outbound delivery
 
+# Protocol/Cipher Settings
 smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtpd_tls_ciphers = high
-smtpd_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES
+smtpd_tls_ciphers = HIGH:!aNULL:!MD5:!RC4:!3DES
+smtp_tls_protocols = !SSLv2, !SSLv3
+smtp_tls_ciphers = HIGH:!aNULL:!MD5
 
-smtp_tls_security_level = encrypt
-smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
-smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
-smtp_tls_ciphers = high
-smtp_tls_exclude_ciphers = AES128-SHA, RC4, DES, MD5, aNULL, eNULL, EXPORT, LOW, IDEA, PSK, SRP, 3DES
-
-
-smtpd_tls_loglevel = 2
-smtp_tls_loglevel = 1
-
+# --- Performance & Logging ---
+smtpd_tls_loglevel = 1
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+smtpd_tls_session_cache_timeout = 3600s
 
-# SMTPUTF8 für internationale Adressen/Inhalte
-smtputf8_enable = yes
-# Alternativ erzwingen (wenn Probleme bleiben):
-# smtputf8_autodetect_classes = sendmail,verify
+# --- Delivery Controls ---
+message_size_limit = 104857600            # 100MB
+smtpd_error_sleep_time = 10s
+smtpd_soft_error_limit = 5
+smtpd_hard_error_limit = 10
 
-# --- Alias Configuration ---
-alias_maps = hash:/etc/aliases
-alias_database = hash:/etc/aliases
-
-# --- Miscellaneous ---
-smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
-biff = no
-append_dot_mydomain = no
-readme_directory = no
+# --- Compatibility ---
 compatibility_level = 3.6
+append_dot_mydomain = no
+biff = no
