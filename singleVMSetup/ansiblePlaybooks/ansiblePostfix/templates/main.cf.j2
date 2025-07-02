@@ -22,10 +22,10 @@ mynetworks = 127.0.0.0/8 [::1]/128 {{ trusted_networks | default('10.0.0.0/8') }
 relayhost =
 
 # --- EDEKA-Specific Fixes ---
-smtputf8_enable = no                     # Disable due to EDEKA's broken implementation
-disable_smtputf8 = yes                   # Force traditional encoding
-smtp_always_send_esmtp = yes             # Ensure ESMTP is used
-smtp_ignore_8bitmime_error = yes         # Handle 8BITMIME gracefully
+smtputf8_enable = no                     
+disable_smtputf8 = yes                  
+smtp_always_send_esmtp = yes             
+smtp_ignore_8bitmime_error = yes         
 
 # --- Security Restrictions ---
 smtpd_recipient_restrictions = 
