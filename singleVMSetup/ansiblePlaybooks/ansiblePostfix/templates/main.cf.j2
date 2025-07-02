@@ -54,6 +54,11 @@ smtp_tls_loglevel = 1
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
 smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
 
+# SMTPUTF8 für internationale Adressen/Inhalte
+smtputf8_enable = yes
+# Alternativ erzwingen (wenn Probleme bleiben):
+# smtputf8_autodetect_classes = sendmail,verify
+
 # --- Alias Configuration ---
 alias_maps = hash:/etc/aliases
 alias_database = hash:/etc/aliases
