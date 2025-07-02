@@ -15,11 +15,13 @@ masquerade_domains = $myhostname
 sender_canonical_maps = hash:/etc/postfix/sender_canonical
 smtp_generic_maps = hash:/etc/postfix/generic
 
-# --- Network Configuration ---
-mydestination = $myhostname, localhost.{{ main_domain }}, localhost
-inet_interfaces = all
-mynetworks = 127.0.0.0/8 [::1]/128 {{ trusted_networks | default('10.0.0.0/8') }}
-relayhost =
+# --- Network & Relay Configuration ---
+mynetworks = 127.0.0.0/8 [::1]/128 172.18.0.0/16 10.50.1.7/32
+relay_domains = $mydestination  # Allow relaying for local domains only
+smtpd_relay_restrictions = 
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    defer_unauth_destination  # Change from 'reject' to 'defer' for debugging
 
 # --- EDEKA-Specific Fixes ---
 smtputf8_enable = no                     
