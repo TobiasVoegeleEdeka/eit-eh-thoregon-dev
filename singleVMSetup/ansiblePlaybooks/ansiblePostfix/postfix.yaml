@@ -85,7 +85,7 @@
     - name: Update alias database
       ansible.builtin.command:
         cmd: newaliases
-      changed_when: false # newaliases doesn't indicate changes well via exit code
+      changed_when: false # newaliases doesn't indicate changes well via exit code v
       notify: Restart Postfix
 
     - name: Check Postfix configuration (optional but recommended)
