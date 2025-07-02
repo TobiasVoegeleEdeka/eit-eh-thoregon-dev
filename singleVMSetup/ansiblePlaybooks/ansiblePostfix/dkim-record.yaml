@@ -118,3 +118,14 @@
       ansible.builtin.systemd:
         name: opendkim
         state: restarted
+
+  handlers:
+    - name: Restart Postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
+
+    - name: Restart OpenDKIM
+      ansible.builtin.systemd:
+        name: opendkim
+        state: restarted
